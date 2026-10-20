@@ -1,0 +1,93 @@
+---
+# ---------------------------------------------------------------------------
+# unblock_ip.yml — retire une adresse IP de la liste de blocage de la gateway
+# (/etc/nginx/blocklist/blocked_ips.conf) puis recharge nginx SANS coupure.
+# Idempotent : une IP absente de la liste ne provoque ni erreur ni rechargement.
+# Usage : ansible-playbook playbooks/unblock_ip.yml -e ip=203.0.113.42
+# ---------------------------------------------------------------------------
+- name: Débloquer une adresse IP à la gateway Poupal
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: unblock_ip
+    service_target: gateway
+    gateway_container: poupal-gateway
+    blocklist_file: /etc/nginx/blocklist/blocked_ips.conf
+    ip: ""
+    # Même validation que block_ip.yml
+    ipv4_regex: '^(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?:/(?:3[0-2]|[12]?\d))?$'
+    ipv6_regex: '^(?=.*:)[0-9A-Fa-f:.]{2,45}(?:/(?:12[0-8]|1[01]\d|[1-9]?\d))?$'
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+
+    - name: Déblocage (journalisé quoi qu'il arrive)
+      block:
+        - name: Vérifier l'adresse demandée
+          ansible.builtin.assert:
+            that: ip is match(ipv4_regex) or ip is match(ipv6_regex)
+            fail_msg: "Variable 'ip' obligatoire : adresse IPv4 ou IPv6 (ex. -e ip=203.0.113.42)"
+            quiet: true
+
+        - name: Lire la liste de blocage actuelle
+          community.docker.docker_container_exec:
+            container: "{{ gateway_container }}"
+            argv: [cat, "{{ blocklist_file }}"]
+          register: current
+          changed_when: false
+          failed_when: current.rc != 0
+
+        - name: L'adresse est-elle bloquée ?
+          ansible.builtin.set_fact:
+            deny_line: "deny {{ ip }};"
+            is_blocked: "{{ ('deny ' ~ ip ~ ';') in current.stdout_lines }}"
+
+        - name: "Retirer « {{ deny_line }} » de la liste (filtrage littéral, ligne entière)"
+          community.docker.docker_container_exec:
+            container: "{{ gateway_container }}"
+            argv:
+              - sh
+              - -c
+              - >-
+                grep -vxF '{{ deny_line }}' {{ blocklist_file }} > {{ blocklist_file }}.tmp || true;
+                mv -f {{ blocklist_file }}.tmp {{ blocklist_file }}
+          register: removed
+          failed_when: removed.rc != 0
+          when: is_blocked | bool
+
+        - name: Tester la configuration et recharger nginx (sans coupure)
+          community.docker.docker_container_exec:
+            container: "{{ gateway_container }}"
+            argv: [sh, -c, "nginx -t && nginx -s reload"]
+          register: reload
+          failed_when: reload.rc != 0
+          when: is_blocked | bool
+
+        - name: Vérifier que la gateway répond toujours
+          ansible.builtin.uri:
+            url: "{{ base_url }}/gateway/health"
+            status_code: 200
+            timeout: 5
+
+        - name: Noter le succès
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "{{ ip }} {{ 'débloquée, nginx rechargé' if is_blocked | bool else 'n était pas bloquée' }}, gateway opérationnelle"
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('voir la sortie ci-dessus')) }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Terminer en erreur si l'action a échoué
+          ansible.builtin.fail:
+            msg: "{{ action_name }} KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

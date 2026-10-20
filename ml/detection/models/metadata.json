@@ -1,0 +1,376 @@
+{
+  "version": "2026.10.20-1219",
+  "trained_at": "2026-10-20T12:19:32+00:00",
+  "training_period": {
+    "start": "2026-10-20T08:12:35+00:00",
+    "end": "2026-10-20T11:16:10+00:00",
+    "points": 2020
+  },
+  "holdout_period": {
+    "start": "2026-10-20T11:16:15+00:00",
+    "end": "2026-10-20T12:12:20+00:00",
+    "points": 674
+  },
+  "step_seconds": 5.0,
+  "data_cleaning": {
+    "rows_before": 2881,
+    "rows_after": 2881,
+    "step_seconds": 5.0,
+    "gaps_detected": 0,
+    "constant_columns": 24,
+    "missing_ratio_before_fill": 0.0
+  },
+  "labeled_points_excluded": 187,
+  "features": [
+    "container_cpu_cores_rate1m__api",
+    "container_cpu_cores_rate1m__auth",
+    "container_cpu_cores_rate1m__db",
+    "container_cpu_cores_rate1m__gateway",
+    "container_memory_bytes__api",
+    "container_memory_bytes__auth",
+    "container_memory_bytes__db",
+    "container_memory_bytes__gateway",
+    "container_restarts_total__api",
+    "container_restarts_total__auth",
+    "container_restarts_total__db",
+    "container_restarts_total__gateway",
+    "db_connections_active",
+    "db_connections_total",
+    "db_errors_per_minute__poupal-api",
+    "db_errors_per_minute__poupal-auth",
+    "db_transactions_per_second_rate1m",
+    "gateway_active_connections__poupal-gateway",
+    "gateway_requests_per_second_rate1m__poupal-gateway",
+    "http_error_ratio_4xx_rate1m__poupal-api",
+    "http_error_ratio_4xx_rate1m__poupal-auth",
+    "http_error_ratio_5xx_rate1m__poupal-api",
+    "http_error_ratio_5xx_rate1m__poupal-auth",
+    "http_latency_seconds_p50__poupal-api",
+    "http_latency_seconds_p50__poupal-auth",
+    "http_latency_seconds_p95__poupal-api",
+    "http_latency_seconds_p95__poupal-auth",
+    "http_requests_per_second_rate1m__poupal-api",
+    "http_requests_per_second_rate1m__poupal-auth",
+    "login_attempts_per_minute__poupal-auth",
+    "login_failures_per_minute__poupal-auth",
+    "service_up__api",
+    "service_up__auth",
+    "service_up__db",
+    "service_up__gateway",
+    "transactions_per_minute__completed",
+    "transactions_per_minute__failed",
+    "transactions_per_minute__pending",
+    "container_cpu_cores_rate1m__api__mean12",
+    "container_cpu_cores_rate1m__auth__mean12",
+    "container_cpu_cores_rate1m__db__mean12",
+    "container_cpu_cores_rate1m__gateway__mean12",
+    "container_memory_bytes__api__mean12",
+    "container_memory_bytes__auth__mean12",
+    "container_memory_bytes__db__mean12",
+    "container_memory_bytes__gateway__mean12",
+    "container_restarts_total__api__mean12",
+    "container_restarts_total__auth__mean12",
+    "container_restarts_total__db__mean12",
+    "container_restarts_total__gateway__mean12",
+    "db_connections_active__mean12",
+    "db_connections_total__mean12",
+    "db_errors_per_minute__poupal-api__mean12",
+    "db_errors_per_minute__poupal-auth__mean12",
+    "db_transactions_per_second_rate1m__mean12",
+    "gateway_active_connections__poupal-gateway__mean12",
+    "gateway_requests_per_second_rate1m__poupal-gateway__mean12",
+    "http_error_ratio_4xx_rate1m__poupal-api__mean12",
+    "http_error_ratio_4xx_rate1m__poupal-auth__mean12",
+    "http_error_ratio_5xx_rate1m__poupal-api__mean12",
+    "http_error_ratio_5xx_rate1m__poupal-auth__mean12",
+    "http_latency_seconds_p50__poupal-api__mean12",
+    "http_latency_seconds_p50__poupal-auth__mean12",
+    "http_latency_seconds_p95__poupal-api__mean12",
+    "http_latency_seconds_p95__poupal-auth__mean12",
+    "http_requests_per_second_rate1m__poupal-api__mean12",
+    "http_requests_per_second_rate1m__poupal-auth__mean12",
+    "login_attempts_per_minute__poupal-auth__mean12",
+    "login_failures_per_minute__poupal-auth__mean12",
+    "service_up__api__mean12",
+    "service_up__auth__mean12",
+    "service_up__db__mean12",
+    "service_up__gateway__mean12",
+    "transactions_per_minute__completed__mean12",
+    "transactions_per_minute__failed__mean12",
+    "transactions_per_minute__pending__mean12",
+    "container_cpu_cores_rate1m__api__std12",
+    "container_cpu_cores_rate1m__auth__std12",
+    "container_cpu_cores_rate1m__db__std12",
+    "container_cpu_cores_rate1m__gateway__std12",
+    "container_memory_bytes__api__std12",
+    "container_memory_bytes__auth__std12",
+    "container_memory_bytes__db__std12",
+    "container_memory_bytes__gateway__std12",
+    "container_restarts_total__api__std12",
+    "container_restarts_total__auth__std12",
+    "container_restarts_total__db__std12",
+    "container_restarts_total__gateway__std12",
+    "db_connections_active__std12",
+    "db_connections_total__std12",
+    "db_errors_per_minute__poupal-api__std12",
+    "db_errors_per_minute__poupal-auth__std12",
+    "db_transactions_per_second_rate1m__std12",
+    "gateway_active_connections__poupal-gateway__std12",
+    "gateway_requests_per_second_rate1m__poupal-gateway__std12",
+    "http_error_ratio_4xx_rate1m__poupal-api__std12",
+    "http_error_ratio_4xx_rate1m__poupal-auth__std12",
+    "http_error_ratio_5xx_rate1m__poupal-api__std12",
+    "http_error_ratio_5xx_rate1m__poupal-auth__std12",
+    "http_latency_seconds_p50__poupal-api__std12",
+    "http_latency_seconds_p50__poupal-auth__std12",
+    "http_latency_seconds_p95__poupal-api__std12",
+    "http_latency_seconds_p95__poupal-auth__std12",
+    "http_requests_per_second_rate1m__poupal-api__std12",
+    "http_requests_per_second_rate1m__poupal-auth__std12",
+    "login_attempts_per_minute__poupal-auth__std12",
+    "login_failures_per_minute__poupal-auth__std12",
+    "service_up__api__std12",
+    "service_up__auth__std12",
+    "service_up__db__std12",
+    "service_up__gateway__std12",
+    "transactions_per_minute__completed__std12",
+    "transactions_per_minute__failed__std12",
+    "transactions_per_minute__pending__std12",
+    "container_cpu_cores_rate1m__api__diff",
+    "container_cpu_cores_rate1m__auth__diff",
+    "container_cpu_cores_rate1m__db__diff",
+    "container_cpu_cores_rate1m__gateway__diff",
+    "container_memory_bytes__api__diff",
+    "container_memory_bytes__auth__diff",
+    "container_memory_bytes__db__diff",
+    "container_memory_bytes__gateway__diff",
+    "container_restarts_total__api__diff",
+    "container_restarts_total__auth__diff",
+    "container_restarts_total__db__diff",
+    "container_restarts_total__gateway__diff",
+    "db_connections_active__diff",
+    "db_connections_total__diff",
+    "db_errors_per_minute__poupal-api__diff",
+    "db_errors_per_minute__poupal-auth__diff",
+    "db_transactions_per_second_rate1m__diff",
+    "gateway_active_connections__poupal-gateway__diff",
+    "gateway_requests_per_second_rate1m__poupal-gateway__diff",
+    "http_error_ratio_4xx_rate1m__poupal-api__diff",
+    "http_error_ratio_4xx_rate1m__poupal-auth__diff",
+    "http_error_ratio_5xx_rate1m__poupal-api__diff",
+    "http_error_ratio_5xx_rate1m__poupal-auth__diff",
+    "http_latency_seconds_p50__poupal-api__diff",
+    "http_latency_seconds_p50__poupal-auth__diff",
+    "http_latency_seconds_p95__poupal-api__diff",
+    "http_latency_seconds_p95__poupal-auth__diff",
+    "http_requests_per_second_rate1m__poupal-api__diff",
+    "http_requests_per_second_rate1m__poupal-auth__diff",
+    "login_attempts_per_minute__poupal-auth__diff",
+    "login_failures_per_minute__poupal-auth__diff",
+    "service_up__api__diff",
+    "service_up__auth__diff",
+    "service_up__db__diff",
+    "service_up__gateway__diff",
+    "transactions_per_minute__completed__diff",
+    "transactions_per_minute__failed__diff",
+    "transactions_per_minute__pending__diff",
+    "ratio_failed_transactions",
+    "ratio_5xx_total"
+  ],
+  "feature_count": 154,
+  "window": 12,
+  "hyperparameters": {
+    "n_estimators": 200,
+    "contamination": 0.01,
+    "scaler": "RobustScaler",
+    "seed": 42
+  },
+  "state_machine": {
+    "confirm_n": 2,
+    "confirm_m": 3,
+    "recover_r": 6
+  },
+  "threshold": 0.21413778793868352,
+  "threshold_curve": [
+    {
+      "quantile": 0.9,
+      "threshold": -0.138509,
+      "false_alerts_per_hour": 6.409
+    },
+    {
+      "quantile": 0.95,
+      "threshold": -0.010374,
+      "false_alerts_per_hour": 3.205
+    },
+    {
+      "quantile": 0.975,
+      "threshold": 0.197844,
+      "false_alerts_per_hour": 3.205
+    },
+    {
+      "quantile": 0.99,
+      "threshold": 0.206432,
+      "false_alerts_per_hour": 1.068
+    },
+    {
+      "quantile": 0.995,
+      "threshold": 0.214138,
+      "false_alerts_per_hour": 0.0
+    },
+    {
+      "quantile": 0.999,
+      "threshold": 0.233379,
+      "false_alerts_per_hour": 0.0
+    },
+    {
+      "quantile": 0.9999,
+      "threshold": 0.233379,
+      "false_alerts_per_hour": 0.0
+    }
+  ],
+  "reference_robust_z": {
+    "threshold": 10.0,
+    "threshold_curve": [
+      {
+        "quantile": 0.9,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.95,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.975,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.99,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.995,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.999,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      },
+      {
+        "quantile": 0.9999,
+        "threshold": 10.0,
+        "false_alerts_per_hour": 0.0
+      }
+    ]
+  },
+  "incident_type_method": "regles",
+  "per_service_models": [
+    "poupal-api",
+    "poupal-auth",
+    "poupal-db",
+    "poupal-gateway"
+  ],
+  "constant_features": [
+    "container_restarts_total__api",
+    "container_restarts_total__auth",
+    "container_restarts_total__db",
+    "container_restarts_total__gateway",
+    "db_errors_per_minute__poupal-api",
+    "db_errors_per_minute__poupal-auth",
+    "http_error_ratio_5xx_rate1m__poupal-api",
+    "http_error_ratio_5xx_rate1m__poupal-auth",
+    "login_failures_per_minute__poupal-auth",
+    "service_up__api",
+    "service_up__auth",
+    "service_up__db",
+    "service_up__gateway",
+    "ratio_failed_transactions",
+    "ratio_5xx_total"
+  ],
+  "evaluation": {
+    "scenarios": [
+      {
+        "type": "outage",
+        "start": "2026-10-20T08:09:52+00:00",
+        "end": "2026-10-20T08:11:33+00:00",
+        "isolation_forest": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        },
+        "robust_z": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        }
+      },
+      {
+        "type": "db_slow",
+        "start": "2026-10-20T08:15:34+00:00",
+        "end": "2026-10-20T08:16:49+00:00",
+        "isolation_forest": {
+          "detected": true,
+          "delay_s": 11.0,
+          "alert_at": "2026-10-20T08:15:45+00:00"
+        },
+        "robust_z": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        }
+      },
+      {
+        "type": "bruteforce",
+        "start": "2026-10-20T08:20:50+00:00",
+        "end": "2026-10-20T08:22:22+00:00",
+        "isolation_forest": {
+          "detected": true,
+          "delay_s": 15.0,
+          "alert_at": "2026-10-20T08:21:05+00:00"
+        },
+        "robust_z": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        }
+      },
+      {
+        "type": "overload",
+        "start": "2026-10-20T08:26:22+00:00",
+        "end": "2026-10-20T08:28:29+00:00",
+        "isolation_forest": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        },
+        "robust_z": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        }
+      },
+      {
+        "type": "outage",
+        "start": "2026-10-20T08:32:30+00:00",
+        "end": "2026-10-20T08:33:38+00:00",
+        "isolation_forest": {
+          "detected": true,
+          "delay_s": 10.0,
+          "alert_at": "2026-10-20T08:32:40+00:00"
+        },
+        "robust_z": {
+          "detected": false,
+          "delay_s": null,
+          "alert_at": null
+        }
+      }
+    ],
+    "scenarios_detected": "3/5",
+    "false_alerts_per_hour_holdout": 0.0
+  }
+}

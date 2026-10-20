@@ -1,0 +1,98 @@
+// ---------------------------------------------------------------------------
+// Poupal — Grafana Alloy : collecte des logs de TOUS les conteneurs du projet
+// et envoi vers Loki. Alloy parle à Docker via le proxy en lecture seule
+// (docker-socket-proxy-logs), jamais via le socket complet.
+//
+// Labels Loki : service, level, event UNIQUEMENT (faible cardinalité).
+// request_id, user_id, client_ip restent dans le contenu JSON du log :
+// on les filtre à la requête, ex. {service="poupal-api"} | json | request_id="…".
+// ---------------------------------------------------------------------------
+
+// 1. Découverte des conteneurs (rafraîchie toutes les 5 s)
+discovery.docker "poupal" {
+  host             = "tcp://docker-socket-proxy-logs:2375"
+  refresh_interval = "5s"
+  filter {
+    name   = "label"
+    values = ["com.docker.compose.project=poupal"]
+  }
+}
+
+// 2. Label de départ : le nom du service compose (ex. "gateway", "db")
+discovery.relabel "poupal" {
+  targets = discovery.docker.poupal.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "compose_service"
+  }
+}
+
+// 3. Lecture des logs (stdout / stderr) de chaque conteneur
+loki.source.docker "poupal" {
+  host             = "tcp://docker-socket-proxy-logs:2375"
+  targets          = discovery.relabel.poupal.output
+  forward_to       = [loki.process.poupal.receiver]
+  refresh_interval = "5s"
+  labels           = { collector = "alloy" }
+}
+
+// 4. Analyse des lignes JSON (services FastAPI, gateway nginx, playbooks Ansible)
+//    puis extraction des trois labels autorisés. Les autres champs restent dans la ligne.
+loki.process "poupal" {
+  forward_to = [loki.write.poupal.receiver]
+
+  // Champs JSON (absents sur une ligne non JSON : la ligne passe telle quelle)
+  stage.json {
+    expressions = {
+      json_service = "service",
+      json_level   = "level",
+      json_event   = "event",
+    }
+  }
+
+  // Valeurs par défaut quand le log n'est pas JSON : service = "poupal-" + nom compose (même convention que Prometheus), level = info
+  stage.template {
+    source   = "service"
+    template = "{{ if .json_service }}{{ .json_service }}{{ else }}poupal-{{ .compose_service }}{{ end }}"
+  }
+  stage.template {
+    source   = "level"
+    template = "{{ if .json_level }}{{ .json_level | ToLower }}{{ else }}info{{ end }}"
+  }
+  stage.template {
+    source   = "event"
+    template = "{{ if .json_event }}{{ .json_event }}{{ else }}-{{ end }}"
+  }
+
+  // Lignes texte de PostgreSQL : "… ERROR: …" / "… FATAL: …" → level
+  stage.match {
+    selector = "{compose_service=\"db\"}"
+    stage.regex {
+      expression = "(?P<pg_level>ERROR|FATAL|PANIC|WARNING)"
+    }
+    stage.template {
+      source   = "level"
+      template = "{{ if eq .pg_level \"ERROR\" }}error{{ else if eq .pg_level \"FATAL\" }}error{{ else if eq .pg_level \"PANIC\" }}error{{ else if eq .pg_level \"WARNING\" }}warning{{ else }}{{ .level }}{{ end }}"
+    }
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+      level   = "",
+      event   = "",
+    }
+  }
+
+  // Seuls les trois labels ci-dessus (plus "collector") partent vers Loki
+  stage.label_drop {
+    values = ["compose_service", "filename", "stream", "container"]
+  }
+}
+
+// 5. Envoi vers Loki
+loki.write "poupal" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# Poupal — Prometheus : collecte des métriques toutes les 5 s.
+# Cibles : services auth / api (FastAPI, /metrics), gateway (nginx-exporter),
+# base de données (postgres-exporter), conteneurs (cAdvisor), Prometheus lui-même.
+# Les règles d'enregistrement (rules/) préparent les variables du modèle ML ;
+# les alertes ne sont qu'un filet de sécurité (la détection principale est le ML).
+# ---------------------------------------------------------------------------
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    platform: poupal
+    environment: demo
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels: { service: prometheus }
+
+  # Services FastAPI : métriques HTTP + métier (login attempts, transactions...)
+  - job_name: auth
+    static_configs:
+      - targets: ["auth:8001"]
+        labels: { service: poupal-auth }
+
+  - job_name: api
+    static_configs:
+      - targets: ["api:8000"]
+        labels: { service: poupal-api }
+
+  # Gateway nginx via stub_status (connexions actives, requêtes totales)
+  - job_name: gateway
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+        labels: { service: poupal-gateway }
+
+  # PostgreSQL via postgres_exporter (rôle lecture seule poupal_exporter)
+  - job_name: db
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels: { service: poupal-db }
+
+  # Conteneurs (CPU, mémoire, réseau, redémarrages) via l'exporter maison (mêmes noms que cAdvisor,
+  # label container = nom du service compose). cAdvisor est inutilisable sous Docker Desktop / WSL2.
+  - job_name: containers
+    static_configs:
+      - targets: ["docker-stats-exporter:9417"]
+        labels: { service: docker-stats-exporter }
+
+  # Détecteur d'anomalies (score, seuil, état) : affiché dans Grafana « Détection »
+  - job_name: detector
+    static_configs:
+      - targets: ["anomaly-detector:8010"]
+        labels: { service: poupal-detector }

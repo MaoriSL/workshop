@@ -1,0 +1,50 @@
+---
+# ---------------------------------------------------------------------------
+# Tâches communes de fin de playbook (appelées dans « always », succès ou échec) :
+# une ligne JSON de remédiation sur la sortie standard ET poussée dans Loki
+# (labels service=remediation, level, event=remediation_action).
+#
+# Variables attendues : action_name, service_target, remediation_started (epoch),
+#                       remediation_result (ok | ko), remediation_details (texte court).
+# Loki injoignable ne fait jamais échouer le playbook (failed_when: false).
+# ---------------------------------------------------------------------------
+- name: Construire la ligne de journal de remédiation
+  ansible.builtin.set_fact:
+    remediation_log:
+      timestamp: "{{ now(utc=true).strftime('%Y-%m-%dT%H:%M:%SZ') }}"
+      level: "{{ 'info' if remediation_result == 'ok' else 'error' }}"
+      service: remediation
+      event: remediation_action
+      action: "{{ action_name }}"
+      service_target: "{{ service_target | default('-', true) }}"
+      result: "{{ remediation_result }}"
+      duration_s: "{{ (now(utc=true).timestamp() - (remediation_started | float)) | round(2) | float }}"
+      details: "{{ remediation_details | default('') | trim | truncate(200, true, '…') }}"
+
+- name: Ligne JSON de remédiation
+  ansible.builtin.debug:
+    msg: "{{ remediation_log | to_json(ensure_ascii=False) }}"
+
+- name: Pousser la ligne dans Loki
+  ansible.builtin.uri:
+    url: "{{ loki_push_url }}"
+    method: POST
+    body_format: json
+    body:
+      streams:
+        - stream:
+            service: remediation
+            level: "{{ remediation_log.level }}"
+            event: remediation_action
+          values:
+            # horodatage en nanosecondes (epoch) + ligne JSON complète
+            - ["{{ lookup('pipe', 'date +%s%N') }}", "{{ remediation_log | to_json(ensure_ascii=False) }}"]
+    status_code: [204]
+    timeout: 5
+  register: loki_push
+  failed_when: false
+
+- name: Avertir si Loki n'a pas pris la ligne
+  ansible.builtin.debug:
+    msg: "Loki n'a pas reçu la ligne (HTTP {{ loki_push.status | default('injoignable') }}) : {{ loki_push.msg | default('') }}"
+  when: (loki_push.status | default(-1)) != 204

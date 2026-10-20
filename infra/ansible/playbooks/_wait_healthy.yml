@@ -1,0 +1,36 @@
+---
+# ---------------------------------------------------------------------------
+# Tâches communes : attend qu'un conteneur de la plateforme soit « healthy »
+# (ou simplement « running » s'il n'a pas de healthcheck), au plus
+# healthy_retries × healthy_delay secondes. Échoue au-delà, avec un message lisible.
+# Variable attendue : service (nom compose ; conteneur poupal-<service>).
+# ---------------------------------------------------------------------------
+- name: "Attendre que poupal-{{ service }} soit healthy ({{ healthy_retries }} × {{ healthy_delay }} s max)"
+  community.docker.docker_container_info:
+    name: "poupal-{{ service }}"
+  register: health
+  until: >-
+    health.exists
+    and health.container.State.Status == 'running'
+    and (health.container.State.Health.Status | default('healthy')) == 'healthy'
+  retries: "{{ healthy_retries }}"
+  delay: "{{ healthy_delay }}"
+  failed_when: false   # le verdict est rendu juste après, avec un message lisible
+  no_log: true         # l'inspection complète contient l'environnement du conteneur (mots de passe)
+
+- name: "Verdict pour poupal-{{ service }}"
+  ansible.builtin.set_fact:
+    health_state: "{{ health.container.State.Status | default('absent') }} / {{ health.container.State.Health.Status | default('sans healthcheck') }}"
+    health_ok: >-
+      {{ health.exists
+         and health.container.State.Status == 'running'
+         and (health.container.State.Health.Status | default('healthy')) == 'healthy' }}
+
+- name: "Échec : poupal-{{ service }} n'est pas revenu en bonne santé"
+  ansible.builtin.fail:
+    msg: "poupal-{{ service }} : {{ health_state }} après {{ healthy_retries }} × {{ healthy_delay }} s"
+  when: not (health_ok | bool)
+
+- name: "État de poupal-{{ service }}"
+  ansible.builtin.debug:
+    msg: "poupal-{{ service }} : {{ health_state }} (après {{ health.attempts | default(1) }} essai(s))"

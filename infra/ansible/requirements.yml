@@ -1,0 +1,7 @@
+# Collections Ansible installées dans l'image ansible-runner (versions épinglées).
+# community.docker : modules docker_compose_v2, docker_container_info,
+# docker_container_exec, docker_image_info, docker_image_tag.
+---
+collections:
+  - name: community.docker
+    version: 5.4.0

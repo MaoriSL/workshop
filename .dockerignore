@@ -1,0 +1,10 @@
+# Contexte de build "racine du dépôt" (images anomaly-detector et remediation-engine) : le strict nécessaire.
+*
+!ml/detection/
+ml/detection/reports/
+ml/detection/tests/
+ml/detection/models/
+!services/remediation/
+services/remediation/app/tests/
+!scripts/smoke_test.py
+**/__pycache__/

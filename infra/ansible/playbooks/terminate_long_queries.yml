@@ -1,0 +1,63 @@
+---
+# ---------------------------------------------------------------------------
+# terminate_long_queries.yml — base ralentie : termine les requêtes SQL qui tournent
+# depuis plus de max_seconds (verrou qui bloque les virements, requête emballée),
+# SANS redémarrer PostgreSQL. Premier niveau de réponse à « db_lente » : le moins
+# intrusif. Les sessions des services se reconnectent d'elles-mêmes (pool_pre_ping).
+# Usage : ansible-playbook playbooks/terminate_long_queries.yml -e max_seconds=5
+# ---------------------------------------------------------------------------
+- name: Terminer les requêtes longues de la base Poupal
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: terminate_long_queries
+    max_seconds: 5
+    service_target: db
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+
+    - name: Terminer les requêtes longues (journalisé quoi qu'il arrive)
+      block:
+        - name: Vérifier le paramètre
+          ansible.builtin.assert:
+            that: max_seconds | int > 0
+            fail_msg: "max_seconds doit être un entier positif"
+            quiet: true
+
+        - name: "Terminer les requêtes actives depuis plus de {{ max_seconds }} s (hors session courante)"
+          community.docker.docker_container_exec:
+            container: "{{ project }}-db"
+            user: postgres
+            command: >-
+              psql -U {{ lookup('env', 'POSTGRES_USER') | default('postgres', true) }}
+              -d {{ lookup('env', 'POSTGRES_DB') | default('poupal', true) }} -At -c
+              "SELECT count(pg_terminate_backend(pid)) FROM pg_stat_activity
+               WHERE state <> 'idle' AND pid <> pg_backend_pid()
+               AND backend_type = 'client backend'
+               AND now() - query_start > interval '{{ max_seconds | int }} seconds';"
+          register: terminated
+
+        - name: Résultat
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "{{ terminated.stdout | trim }} requête(s) terminée(s) (> {{ max_seconds }} s)"
+
+      rescue:
+        - name: Mémoriser l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_result.msg | default('échec') }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+    - name: Échouer si l'action a échoué
+      ansible.builtin.assert:
+        that: remediation_result == 'ok'
+        fail_msg: "{{ remediation_details }}"
+        quiet: true

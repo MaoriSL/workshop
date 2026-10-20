@@ -1,0 +1,109 @@
+---
+# ---------------------------------------------------------------------------
+# restore_db.yml — restaure la base PostgreSQL depuis le volume db-backups :
+# la sauvegarde la plus récente qui passe pg_restore --list (ou backup_file),
+# avec pg_restore --clean --if-exists, puis contrôle de cohérence du ledger.
+# Les propriétaires (poupal_auth, poupal_api) sont conservés : ces rôles existent
+# dans le même serveur et le moindre privilège repose sur eux.
+# Usage : ansible-playbook playbooks/restore_db.yml [-e backup_file=/backups/poupal-....dump]
+# ---------------------------------------------------------------------------
+- name: Restaurer la base PostgreSQL de Poupal
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: restore_db
+    service_target: db
+    db_container: poupal-db
+    backup_dir: /backups
+    backup_file: ""
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+
+    - name: Restauration (journalisée quoi qu'il arrive)
+      block:
+        - name: Lister les sauvegardes disponibles (plus récente d'abord)
+          community.docker.docker_container_exec:
+            container: "{{ db_container }}"
+            argv: [sh, -c, "ls -1t {{ backup_dir }}/poupal-*.dump 2>/dev/null || true"]
+          register: available
+          changed_when: false
+
+        - name: Candidates à la restauration
+          ansible.builtin.set_fact:
+            candidates: "{{ [backup_file] if backup_file else available.stdout_lines }}"
+
+        - name: Vérifier qu'il existe au moins une sauvegarde
+          ansible.builtin.assert:
+            that: candidates | length > 0
+            fail_msg: "Aucune sauvegarde dans {{ backup_dir }} : lancer backup_db.yml d'abord"
+            quiet: true
+
+        - name: Vérifier l'intégrité des candidates (pg_restore --list)
+          community.docker.docker_container_exec:
+            container: "{{ db_container }}"
+            argv: [pg_restore, --list, "{{ item }}"]
+          loop: "{{ candidates }}"
+          register: checks
+          changed_when: false
+          failed_when: false
+
+        - name: Retenir la plus récente sauvegarde valide
+          ansible.builtin.set_fact:
+            chosen_backup: "{{ checks.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | first | default('') }}"
+
+        - name: Vérifier qu'une sauvegarde valide a été trouvée
+          ansible.builtin.assert:
+            that: chosen_backup | length > 0
+            fail_msg: "Aucune sauvegarde valide parmi : {{ candidates | join(', ') }}"
+            quiet: true
+
+        - name: "Restaurer {{ chosen_backup }} (pg_restore --clean --if-exists)"
+          community.docker.docker_container_exec:
+            container: "{{ db_container }}"
+            argv:
+              - sh
+              - -c
+              - pg_restore --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB" "{{ chosen_backup }}"
+          register: restore
+          # pg_restore renvoie 1 dès qu'un avertissement a été ignoré : seules les
+          # erreurs autres que « does not exist » (objets déjà absents) sont bloquantes
+          failed_when: >-
+            restore.rc != 0 and
+            (restore.stderr_lines | select('search', 'ERROR') | reject('search', 'does not exist') | list | length > 0)
+
+        - name: Messages de pg_restore
+          ansible.builtin.debug:
+            msg: "{{ restore.stderr_lines | default([]) | select('search', 'ERROR|WARNING|errors ignored') | list }}"
+          when: restore.stderr_lines | default([]) | length > 0
+
+        - name: Contrôle de cohérence du ledger après restauration
+          ansible.builtin.uri:
+            url: "{{ internal_url }}/internal/consistency"
+            return_content: true
+            timeout: 10
+          register: consistency
+          failed_when: consistency.json.status | default('ko') != 'ok'
+
+        - name: Noter le succès
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "{{ chosen_backup }} restaurée, cohérence {{ consistency.json.status }}"
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default(ansible_failed_result.stderr | default('voir la sortie ci-dessus')) }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Terminer en erreur si l'action a échoué
+          ansible.builtin.fail:
+            msg: "{{ action_name }} KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

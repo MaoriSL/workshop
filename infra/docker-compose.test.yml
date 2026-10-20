@@ -1,0 +1,15 @@
+# Surcouche pour exécuter les tests pytest DANS les images (cible "test" des Dockerfiles),
+# contre la base poupal_test. Usage : scripts/run_tests.sh
+services:
+  auth:
+    build: { target: test }
+    environment:
+      DATABASE_URL: postgresql+psycopg://poupal_auth:${AUTH_DB_PASSWORD}@db:5432/poupal_test
+      SEED_DEMO_DATA: "false"
+  api:
+    build: { target: test }
+    environment:
+      DATABASE_URL: postgresql+psycopg://poupal_api:${API_DB_PASSWORD}@db:5432/poupal_test
+      # Les tests de l'API insèrent des utilisateurs de test dans auth.users (rôle auth, base de test)
+      TEST_AUTH_DATABASE_URL: postgresql+psycopg://poupal_auth:${AUTH_DB_PASSWORD}@db:5432/poupal_test
+      SEED_DEMO_DATA: "false"

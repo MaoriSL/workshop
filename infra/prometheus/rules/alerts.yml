@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------------------
+# Alertes de SECOURS. Ce n'est PAS le mécanisme de détection principal (modèle ML) :
+# ces règles servent de filet de sécurité et alimentent le dashboard « Santé ».
+# ---------------------------------------------------------------------------
+groups:
+  - name: poupal-safety-net
+    rules:
+      - alert: PoupalServiceDown
+        expr: poupal:service_up == 0
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "Service {{ $labels.job }} injoignable"
+          description: "La cible {{ $labels.instance }} ne répond plus depuis 30 s."
+
+      - alert: PoupalHigh5xxRate
+        expr: poupal:http_error_ratio_5xx:rate1m > 0.05 and poupal:http_requests_per_second:rate1m > 0.2
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Taux de 5xx élevé sur {{ $labels.service }}"
+          description: "{{ $value | humanizePercentage }} des requêtes échouent en 5xx depuis 1 min."
+
+      - alert: PoupalHighLatencyP95
+        expr: poupal:http_latency_seconds:p95 > 1
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "Latence p95 élevée sur {{ $labels.service }}"
+          description: "p95 = {{ $value | humanizeDuration }} depuis 2 min."
+
+      - alert: PoupalLoginFailuresBurst
+        expr: poupal:login_failures_per_minute > 30
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Rafale d'échecs de connexion"
+          description: "{{ $value }} échecs de connexion par minute (force brute possible)."
+
+      - alert: PoupalContainerRestarting
+        expr: increase(poupal:container_restarts_total[10m]) > 2
+        for: 0s
+        labels: { severity: warning }
+        annotations:
+          summary: "Le conteneur {{ $labels.container }} redémarre en boucle"

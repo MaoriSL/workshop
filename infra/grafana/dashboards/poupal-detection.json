@@ -1,0 +1,490 @@
+{
+  "uid": "poupal-detection",
+  "title": "Poupal — Détection d'anomalies (ML)",
+  "tags": [
+    "poupal",
+    "ml"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "État du détecteur",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_state",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "NORMAL",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "SUSPECT",
+                  "color": "orange"
+                },
+                "2": {
+                  "text": "ANOMALIE",
+                  "color": "red"
+                },
+                "3": {
+                  "text": "RÉTABLISSEMENT",
+                  "color": "blue"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              },
+              {
+                "color": "blue",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Score d'anomalie",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_score",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Seuil d'alerte",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_threshold",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Score d'anomalie vs seuil",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 16,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_score",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "score"
+        },
+        {
+          "refId": "B",
+          "expr": "poupal_anomaly_threshold",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "seuil"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "seuil"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "bargauge",
+      "title": "Score par service",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 6,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_service_score",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": -0.3,
+          "max": 0.3,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "state-timeline",
+      "title": "Chronologie des états",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_anomaly_state",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "détecteur"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "NORMAL",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "SUSPECT",
+                  "color": "orange"
+                },
+                "2": {
+                  "text": "ANOMALIE",
+                  "color": "red"
+                },
+                "3": {
+                  "text": "RÉTABLISSEMENT",
+                  "color": "blue"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              },
+              {
+                "color": "blue",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true,
+        "rowHeight": 0.9
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Incidents détectés (service suspecté, type, variables)",
+      "datasource": {
+        "type": "loki",
+        "uid": "poupal-loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"poupal-detector\", event=~\"anomaly_detected|anomaly_resolved\"} | json | line_format \"{{.event}}  service={{.suspected_service}}  type={{.incident_type}}  score={{.score}}  variables={{.top_features}}\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

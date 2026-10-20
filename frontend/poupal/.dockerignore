@@ -1,0 +1,29 @@
+# Fichiers exclus du contexte de build Docker : image plus légère et,
+# surtout, aucun secret (.env) ne peut se retrouver dans l'image.
+
+# Dépendances et builds locaux (reconstruits dans le conteneur)
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+
+# Variables d'environnement : tout .env est exclu, sauf l'exemple documenté
+.env
+.env.*
+!.env.example
+
+# Dépôt Git et fichiers d'éditeur
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# Journaux
+*.log
+npm-debug.log*
+
+# Fichiers inutiles dans l'image
+Dockerfile
+.dockerignore
+README.md

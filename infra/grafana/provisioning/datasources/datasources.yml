@@ -1,0 +1,29 @@
+# Sources de données provisionnées par fichier : rien à configurer à la main.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: poupal-prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 5s
+      httpMethod: POST
+
+  - name: Loki
+    uid: poupal-loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Un clic sur un request_id dans un log ouvre tous les logs portant ce même identifiant
+        - name: request_id
+          matcherRegex: '"request_id":\s*"([^"]+)"'
+          url: '{service=~".+"} |= "$${__value.raw}"'
+          datasourceUid: poupal-loki
