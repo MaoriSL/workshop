@@ -1,0 +1,105 @@
+/* ------------------------------------------------------------------
+   Poupal Supervision — feuille de style globale (Tailwind CSS v4)
+   Thème sombre (écran projeté / filmé). Les couleurs de la charte sont
+   déclarées comme design tokens ; Tailwind génère les classes
+   (bg-night, text-muted, border-line, ...).
+   ------------------------------------------------------------------ */
+@import 'tailwindcss';
+
+@theme {
+  /* Fond et surfaces */
+  --color-night: #0b1020; /* fond général */
+  --color-panel: #121a36; /* cartes */
+  --color-panel-2: #1a2447; /* cartes surélevées / lignes */
+  --color-line: #263257; /* bordures discrètes */
+
+  /* Charte Poupal */
+  --color-primary: #1b3a8b;
+  --color-accent: #2e6bff;
+  --color-sky: #27b8f5;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-danger-dark: #7f1d1d;
+  --color-warning: #f59e0b;
+  --color-violet: #7c3aed;
+
+  /* Texte */
+  --color-ink: #f3f6ff;
+  --color-muted: #9aa6c8;
+
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Animations */
+  --animate-row-in: row-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-card-in: card-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+
+  @keyframes row-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes card-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-night text-ink;
+    overflow: hidden; /* écran unique : jamais de défilement de page */
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-sky);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Tailles de texte "fluides" : proportionnelles à la hauteur de l'écran
+   (clamp) pour rester lisibles à distance en 1366×768 comme en 1920×1080
+   sans jamais déborder.
+   ------------------------------------------------------------------ */
+@utility t-hero {
+  font-size: clamp(22px, 3.9vh, 54px);
+  line-height: 1.1;
+}
+@utility t-giant {
+  font-size: clamp(44px, 9.5vh, 120px);
+  line-height: 1;
+}
+@utility t-tile {
+  font-size: clamp(16px, 2.7vh, 32px);
+  line-height: 1.1;
+}
+@utility t-title {
+  font-size: clamp(13px, 2vh, 24px);
+  line-height: 1.2;
+}
+@utility t-body {
+  font-size: clamp(12px, 1.8vh, 21px);
+  line-height: 1.25;
+}
+@utility t-small {
+  font-size: clamp(11px, 1.45vh, 16px);
+  line-height: 1.2;
+}
+
+/* Fondu en haut d'une liste tronquée : les lignes anciennes s'effacent en douceur */
+@utility fade-top {
+  mask-image: linear-gradient(to bottom, transparent 0, black 2.5em);
+}
+
+/* Carte standard du dashboard */
+@utility card {
+  @apply rounded-2xl border border-line bg-panel;
+}

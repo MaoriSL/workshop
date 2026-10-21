@@ -1,0 +1,6 @@
+# Règles SOPS : les fichiers *.sops.env de security/secrets/ sont chiffrés pour cette clé age.
+# La clé PRIVÉE correspondante est dans secrets/age/keys.txt (hors Git). Le fichier chiffré, lui,
+# peut être commité sans risque. Voir docs/security.md et scripts/secrets.sh.
+creation_rules:
+  - path_regex: security/secrets/.*\.sops\.env$
+    age: age1hz55ytc7gjc7kft6se4p84epalyvyc2q366h25x39pzncj0gzvmsrq4e4e

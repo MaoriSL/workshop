@@ -1,0 +1,67 @@
+---
+# ---------------------------------------------------------------------------
+# recreate_service.yml — détruit et recrée UN conteneur à partir de son image
+# d'origine (conteneur potentiellement compromis : fichiers modifiés, processus
+# injecté...). Les volumes de données ne sont PAS touchés (base, sauvegardes,
+# liste de blocage). Les services dépendants ne sont pas redémarrés.
+# Usage : ansible-playbook playbooks/recreate_service.yml -e service=api
+# ---------------------------------------------------------------------------
+- name: Recréer un service Poupal depuis son image d'origine
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: recreate_service
+    service: ""
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+        service_target: "{{ service | default('-', true) }}"
+
+    - name: Recréation (journalisée quoi qu'il arrive)
+      block:
+        - name: Préparer le projet Compose (chemins vus par l'hôte, liste des services gérés)
+          ansible.builtin.include_tasks: _compose_project.yml
+
+        - name: Vérifier le service demandé
+          ansible.builtin.assert:
+            that: service in managed_services
+            fail_msg: "Variable 'service' obligatoire, parmi : {{ managed_services | join(', ') }}"
+            quiet: true
+
+        - name: "Recréer {{ service }} (docker compose up --force-recreate --no-deps)"
+          community.docker.docker_compose_v2:
+            project_src: "{{ compose_project_dir }}"
+            project_name: "{{ project }}"
+            env_files: ["{{ project_dir }}/.env"]
+            services: ["{{ service }}"]
+            state: present
+            recreate: always
+            dependencies: false
+            build: never      # images construites une fois par l'opérateur
+            pull: never
+
+        - name: Attendre le retour en bonne santé
+          ansible.builtin.include_tasks: _wait_healthy.yml
+
+        - name: Noter le succès
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "{{ service }} recréé depuis {{ compose_images[service] }} et healthy"
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default('voir la sortie ci-dessus') }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Terminer en erreur si l'action a échoué
+          ansible.builtin.fail:
+            msg: "{{ action_name }} KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

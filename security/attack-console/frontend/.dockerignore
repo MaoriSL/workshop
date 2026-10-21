@@ -1,0 +1,18 @@
+# Contexte de build Docker : image légère et aucun secret (.env) dans l'image.
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+*.log
+npm-debug.log*
+Dockerfile
+.dockerignore
+README.md

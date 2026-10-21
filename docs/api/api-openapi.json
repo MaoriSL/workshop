@@ -1,0 +1,714 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Poupal — API de paiement",
+    "description": "Plateforme de paiement FICTIVE (environnement de démonstration, aucun paiement réel).",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "technique"
+        ],
+        "summary": "Liveness",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "technique"
+        ],
+        "summary": "Readiness (base + secrets)",
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/me": {
+      "get": {
+        "tags": [
+          "comptes"
+        ],
+        "summary": "Mon compte (créé automatiquement s'il n'existe pas)",
+        "operationId": "read_my_account_api_accounts_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/transactions": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Historique de mes transactions",
+        "operationId": "list_my_transactions_api_transactions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Taille de page (1 à 100)",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Taille de page (1 à 100)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Décalage de départ",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Décalage de départ"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Envoyer de l'argent",
+        "operationId": "send_money_api_transactions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Clé unique par tentative de virement (1 à 128 caractères)",
+              "title": "Idempotency-Key"
+            },
+            "description": "Clé unique par tentative de virement (1 à 128 caractères)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Rejeu idempotent : même Idempotency-Key et même corps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transactions/{transaction_id}": {
+      "get": {
+        "tags": [
+          "transactions"
+        ],
+        "summary": "Détail d'une transaction",
+        "operationId": "read_transaction_api_transactions__transaction_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "transaction_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transaction Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/consistency": {
+      "get": {
+        "tags": [
+          "interne (réseau Docker uniquement)"
+        ],
+        "summary": "Contrôle de cohérence du ledger",
+        "operationId": "check_consistency_internal_consistency_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsistencyReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountOut": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "balance_cents": {
+            "type": "integer",
+            "title": "Balance Cents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "opening_balance_cents": {
+            "type": "integer",
+            "title": "Opening Balance Cents"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "user_id",
+          "balance_cents",
+          "currency",
+          "opening_balance_cents",
+          "created_at"
+        ],
+        "title": "AccountOut",
+        "description": "Réponse de GET /api/accounts/me."
+      },
+      "ConsistencyChecks": {
+        "properties": {
+          "negative_balances": {
+            "$ref": "#/components/schemas/NegativeBalancesCheck"
+          },
+          "total_conservation": {
+            "$ref": "#/components/schemas/TotalConservationCheck"
+          },
+          "per_account_ledger": {
+            "$ref": "#/components/schemas/PerAccountLedgerCheck"
+          }
+        },
+        "type": "object",
+        "required": [
+          "negative_balances",
+          "total_conservation",
+          "per_account_ledger"
+        ],
+        "title": "ConsistencyChecks"
+      },
+      "ConsistencyReport": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "ko"
+            ],
+            "title": "Status"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/ConsistencyChecks"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "checks",
+          "checked_at"
+        ],
+        "title": "ConsistencyReport",
+        "description": "Réponse de GET /internal/consistency (toujours HTTP 200 : c'est un rapport)."
+      },
+      "CounterpartyOut": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "name"
+        ],
+        "title": "CounterpartyOut",
+        "description": "L'autre partie d'une transaction, vue par l'utilisateur courant."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LedgerMismatch": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "expected_cents": {
+            "type": "integer",
+            "title": "Expected Cents"
+          },
+          "actual_cents": {
+            "type": "integer",
+            "title": "Actual Cents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "expected_cents",
+          "actual_cents"
+        ],
+        "title": "LedgerMismatch"
+      },
+      "NegativeBalancesCheck": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "count"
+        ],
+        "title": "NegativeBalancesCheck"
+      },
+      "PerAccountLedgerCheck": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "mismatches": {
+            "items": {
+              "$ref": "#/components/schemas/LedgerMismatch"
+            },
+            "type": "array",
+            "title": "Mismatches"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "mismatches"
+        ],
+        "title": "PerAccountLedgerCheck"
+      },
+      "TotalConservationCheck": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "sum_balances_cents": {
+            "type": "integer",
+            "title": "Sum Balances Cents"
+          },
+          "sum_opening_balances_cents": {
+            "type": "integer",
+            "title": "Sum Opening Balances Cents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "sum_balances_cents",
+          "sum_opening_balances_cents"
+        ],
+        "title": "TotalConservationCheck"
+      },
+      "TransactionCreate": {
+        "properties": {
+          "recipient_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Recipient Email"
+          },
+          "amount_cents": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Cents",
+            "description": "Montant en centimes, entier strictement positif"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 140
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Libellé facultatif (140 caractères max)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recipient_email",
+          "amount_cents"
+        ],
+        "title": "TransactionCreate",
+        "description": "Corps de POST /api/transactions. Les champs inconnus sont refusés (contrat explicite)."
+      },
+      "TransactionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "reference": {
+            "type": "string",
+            "title": "Reference"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "sent",
+              "received"
+            ],
+            "title": "Type"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "amount_cents": {
+            "type": "integer",
+            "title": "Amount Cents"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
+          },
+          "failure_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Reason"
+          },
+          "counterparty": {
+            "$ref": "#/components/schemas/CounterpartyOut"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "reference",
+          "type",
+          "status",
+          "amount_cents",
+          "currency",
+          "message",
+          "failure_reason",
+          "counterparty",
+          "created_at"
+        ],
+        "title": "TransactionOut",
+        "description": "Une transaction, toujours relative à l'utilisateur courant (type sent / received)."
+      },
+      "TransactionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TransactionOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TransactionPage",
+        "description": "Page de l'historique : GET /api/transactions?limit=&offset=."
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "failed",
+          "pending"
+        ],
+        "title": "TransactionStatus"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "description": "Jeton JWT délivré par POST /auth/login",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

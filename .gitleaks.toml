@@ -1,0 +1,18 @@
+# Configuration gitleaks pour Poupal. On s'appuie sur les règles par défaut, en IGNORANT ce qui
+# est légitimement chiffré ou non secret (exemples, clés publiques, fichiers SOPS).
+title = "Poupal gitleaks"
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fichiers chiffrés / exemples / clés publiques — pas des secrets en clair"
+paths = [
+  '''security/secrets/poupal\.sops\.env''',   # chiffré par SOPS
+  '''secrets/age/keys\.txt''',                # clé age locale (gitignored de toute façon)
+  '''.*\.env\.example$''',                    # valeurs factices
+  '''docs/api/contract\.md''',                # exemples de jetons/UUID dans la doc d'API (illustratifs)
+  '''docs/.*\.md''',                          # autres exemples dans la documentation
+]
+regexes = [
+  '''change-me-[a-z-]+''',                    # valeurs factices des .env.example
+]

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Console d'attaque Poupal">
+  <!-- Bouclier sombre (laboratoire de sécurité) -->
+  <rect width="64" height="64" rx="14" fill="#0B1020" />
+  <path d="M32 10 L50 17 V33 C50 44 42 51 32 55 C22 51 14 44 14 33 V17 Z"
+        fill="#1B3A8B" stroke="#2E6BFF" stroke-width="2.5" />
+  <!-- Cible (attaque confinée) -->
+  <circle cx="32" cy="33" r="10" fill="none" stroke="#27B8F5" stroke-width="2.5" />
+  <circle cx="32" cy="33" r="3.2" fill="#F59E0B" />
+</svg>

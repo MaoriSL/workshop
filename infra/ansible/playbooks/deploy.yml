@@ -1,0 +1,126 @@
+---
+# ---------------------------------------------------------------------------
+# deploy.yml — déploie (ou met à jour) la plateforme Poupal sans intervention humaine :
+#   1. garde l'image EN SERVICE de auth / api / front sous le tag « previous »
+#      (cible de rollback.yml) ;
+#   2. docker compose up (images déjà construites : ni build, ni pull) ;
+#   3. attend que les services soient « healthy » ;
+#   4. prouve que ça marche : smoke test de bout en bout (login → virement → solde → cohérence).
+# Les proxys du socket Docker ne sont jamais touchés : l'exécuteur passe par eux.
+# Usage : ansible-playbook playbooks/deploy.yml
+# ---------------------------------------------------------------------------
+- name: Déployer la plateforme Poupal et prouver qu'elle fonctionne
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: deploy
+    service_target: "-"
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+
+    - name: Déploiement (journalisé quoi qu'il arrive)
+      block:
+        - name: Préparer le projet Compose (chemins vus par l'hôte, liste des services gérés)
+          ansible.builtin.include_tasks: _compose_project.yml
+
+        - name: Image actuellement en service pour auth / api / front
+          community.docker.docker_container_info:
+            name: "poupal-{{ item }}"
+          loop: "{{ versioned_services }}"
+          register: running
+          no_log: true   # l'inspection complète contient l'environnement des conteneurs (mots de passe)
+
+        - name: Ne garder que l'essentiel (service, identifiant et nom de l'image en service)
+          ansible.builtin.set_fact:
+            running_images: >-
+              {{ running_images | default([])
+                 + [{'service': item.item, 'image_id': item.container.Image, 'image_name': item.container.Config.Image}] }}
+          loop: "{{ running.results }}"
+          loop_control:
+            label: "{{ item.item }}"
+          when: item.exists
+
+        - name: L'image en service existe-t-elle encore ? (un rebuild sous le même tag peut l'avoir remplacée)
+          community.docker.docker_image_info:
+            name: "{{ item.image_id }}"
+          loop: "{{ running_images | default([]) }}"
+          loop_control:
+            label: "{{ item.service }}"
+          register: image_checks
+
+        - name: tag_current_as_previous — conserver l'image en service sous poupal/<service>:previous
+          community.docker.docker_image_tag:
+            # identifiant de l'image réellement en service ; sinon le tag courant (ex. poupal/api:0.1.0)
+            name: "{{ item.item.image_id if item.images | length > 0 else item.item.image_name }}"
+            repository: ["poupal/{{ item.item.service }}:previous"]
+          loop: "{{ image_checks.results }}"
+          loop_control:
+            label: "{{ item.item.service }} <- {{ item.item.image_id if item.images | length > 0 else item.item.image_name }}"
+
+        - name: Déployer la plateforme (docker compose up, sans build ni pull)
+          community.docker.docker_compose_v2:
+            project_src: "{{ compose_project_dir }}"
+            project_name: "{{ project }}"
+            env_files: ["{{ project_dir }}/.env"]
+            services: "{{ managed_services }}"   # tout sauf les proxys du socket et l'exécuteur
+            state: present
+            build: never
+            pull: never
+          register: deploy_result
+
+        - name: Actions effectuées par compose
+          ansible.builtin.debug:
+            msg: "{{ deploy_result.actions | default([]) }}"
+
+        - name: Attendre que tous les services gérés soient healthy
+          ansible.builtin.include_tasks: _wait_healthy.yml
+          loop: "{{ managed_services }}"
+          loop_control:
+            loop_var: service
+
+        - name: Smoke test de bout en bout (scripts/smoke_test.py, mot de passe via SMOKE_PASSWORD)
+          ansible.builtin.command:
+            argv:
+              - python3
+              - /workspace/scripts/smoke_test.py
+              - --base-url
+              - "{{ base_url }}"
+              - --internal-url
+              - "{{ internal_url }}"
+          register: smoke
+          changed_when: false
+          failed_when: false
+
+        - name: Résultat du smoke test
+          ansible.builtin.debug:
+            msg: "{{ smoke.stdout_lines + smoke.stderr_lines }}"
+
+        - name: Le déploiement n'est prouvé que par un smoke test réussi
+          ansible.builtin.assert:
+            that: smoke.rc == 0
+            fail_msg: "smoke test KO (code {{ smoke.rc }})"
+            quiet: true
+
+        - name: Noter le succès
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "plateforme déployée ({{ deploy_result.actions | default([]) | length }} action(s) compose), services healthy, smoke test OK"
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default('voir la sortie ci-dessus') }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Terminer en erreur si l'action a échoué
+          ansible.builtin.fail:
+            msg: "{{ action_name }} KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

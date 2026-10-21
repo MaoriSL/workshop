@@ -1,0 +1,43 @@
+# ---- Secrets et configuration locale : JAMAIS dans Git ----
+.env
+.env.*
+!.env.example
+/secrets/*
+!/secrets/README.md
+
+# ---- Node / front ----
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+
+# ---- Python / services ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# ---- Données / exports ----
+infra/db/data/
+*.log
+
+# ---- OS / IDE ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---- Données ML générées ----
+ml/data/*.csv
+
+# --- Sécurité : jamais de secret en clair, où qu'il soit ---
+secrets/age/
+*.pem
+security/secrets/_*.env
+security/secrets/*.plain
+infra/.env

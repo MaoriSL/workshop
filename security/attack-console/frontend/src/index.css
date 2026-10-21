@@ -1,0 +1,111 @@
+/* ------------------------------------------------------------------
+   Poupal — Console d'attaque (laboratoire). Feuille de style globale
+   (Tailwind CSS v4). Thème sombre (écran projeté / filmé le jour du jury).
+   Les couleurs de la charte Poupal sont déclarées comme design tokens ;
+   Tailwind génère les classes (bg-night, text-muted, border-line, ...).
+   ------------------------------------------------------------------ */
+@import 'tailwindcss';
+
+@theme {
+  /* Fond et surfaces */
+  --color-night: #0b1020; /* fond général */
+  --color-panel: #121a36; /* cartes */
+  --color-panel-2: #1a2447; /* cartes surélevées / lignes */
+  --color-line: #263257; /* bordures discrètes */
+
+  /* Charte Poupal */
+  --color-primary: #1b3a8b;
+  --color-accent: #2e6bff;
+  --color-sky: #27b8f5;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-danger-dark: #7f1d1d;
+  --color-warning: #f59e0b;
+  --color-violet: #7c3aed;
+
+  /* Texte */
+  --color-ink: #f3f6ff;
+  --color-muted: #9aa6c8;
+
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Animations */
+  --animate-row-in: row-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-card-in: card-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-run-glow: run-glow 1.8s ease-in-out infinite;
+
+  @keyframes row-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes card-in {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  /* Liseré orange animé (sobre) d'une carte dont l'attaque est en cours */
+  @keyframes run-glow {
+    0%, 100% { box-shadow: 0 0 0 1px var(--color-warning), 0 0 10px -2px var(--color-warning); }
+    50% { box-shadow: 0 0 0 1px var(--color-warning), 0 0 22px 1px var(--color-warning); }
+  }
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-night text-ink;
+    overflow: hidden; /* écran unique : jamais de défilement de la page entière */
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-sky);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Tailles de texte "fluides" : proportionnelles à la hauteur de l'écran
+   (clamp) pour rester lisibles à distance en 1366×768 comme en 1920×1080
+   sans jamais déborder.
+   ------------------------------------------------------------------ */
+@utility t-hero {
+  font-size: clamp(20px, 3.2vh, 42px);
+  line-height: 1.1;
+}
+@utility t-tile {
+  font-size: clamp(16px, 2.6vh, 30px);
+  line-height: 1.1;
+}
+@utility t-title {
+  font-size: clamp(13px, 2vh, 23px);
+  line-height: 1.2;
+}
+@utility t-body {
+  font-size: clamp(12px, 1.7vh, 19px);
+  line-height: 1.25;
+}
+@utility t-small {
+  font-size: clamp(11px, 1.4vh, 15px);
+  line-height: 1.2;
+}
+@utility t-mini {
+  font-size: clamp(10px, 1.2vh, 13px);
+  line-height: 1.15;
+}
+
+/* Carte standard */
+@utility card {
+  @apply rounded-2xl border border-line bg-panel;
+}
+
+/* Fondu en haut d'une liste défilante : les lignes du haut s'effacent en douceur */
+@utility fade-top {
+  mask-image: linear-gradient(to bottom, transparent 0, black 2em);
+}

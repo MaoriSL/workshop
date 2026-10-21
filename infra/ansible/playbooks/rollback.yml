@@ -1,0 +1,83 @@
+---
+# ---------------------------------------------------------------------------
+# rollback.yml — remet en service la version PRÉCÉDENTE d'un service construit
+# localement (auth, api, front) : recrée le conteneur avec l'image
+# poupal/<service>:<image_tag> (par défaut « previous », tag posé par deploy.yml
+# avant chaque déploiement). Échoue proprement si l'image n'existe pas.
+# Usage : ansible-playbook playbooks/rollback.yml -e service=api [-e image_tag=0.1.0]
+# Pour rendre le retour définitif : mettre <SERVICE>_IMAGE_TAG dans infra/.env.
+# ---------------------------------------------------------------------------
+- name: Revenir à une version précédente d'un service Poupal
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: rollback
+    service: ""
+    image_tag: previous
+  # Compose lit ce tag à la place de celui de infra/.env (ex. API_IMAGE_TAG=previous) :
+  # l'environnement du processus est prioritaire sur le fichier .env.
+  environment: "{{ { (service | upper | replace('-', '_')) ~ '_IMAGE_TAG': image_tag } }}"
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+        service_target: "{{ service | default('-', true) }}"
+
+    - name: Retour arrière (journalisé quoi qu'il arrive)
+      block:
+        - name: Vérifier le service demandé
+          ansible.builtin.assert:
+            that: service in versioned_services
+            fail_msg: "Variable 'service' obligatoire, parmi : {{ versioned_services | join(', ') }}"
+            quiet: true
+
+        - name: Préparer le projet Compose (chemins vus par l'hôte, tag de rollback appliqué)
+          ansible.builtin.include_tasks: _compose_project.yml
+
+        - name: "Vérifier que l'image {{ compose_images[service] }} existe"
+          community.docker.docker_image_info:
+            name: "{{ compose_images[service] }}"
+          register: rollback_image
+
+        - name: Refuser un rollback vers une image absente
+          ansible.builtin.assert:
+            that: rollback_image.images | length > 0
+            fail_msg: "Image {{ compose_images[service] }} introuvable : aucune version précédente (deploy.yml pose le tag « previous »)"
+            quiet: true
+
+        - name: "Recréer {{ service }} avec {{ compose_images[service] }}"
+          community.docker.docker_compose_v2:
+            project_src: "{{ compose_project_dir }}"
+            project_name: "{{ project }}"
+            env_files: ["{{ project_dir }}/.env"]
+            services: ["{{ service }}"]
+            state: present
+            recreate: always
+            dependencies: false
+            build: never
+            pull: never
+
+        - name: Attendre le retour en bonne santé
+          ansible.builtin.include_tasks: _wait_healthy.yml
+
+        - name: Noter le succès
+          ansible.builtin.set_fact:
+            remediation_result: ok
+            remediation_details: "{{ service }} revenu sur {{ compose_images[service] }} et healthy"
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default('voir la sortie ci-dessus') }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Terminer en erreur si l'action a échoué
+          ansible.builtin.fail:
+            msg: "{{ action_name }} KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

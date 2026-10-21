@@ -1,0 +1,109 @@
+---
+# ---------------------------------------------------------------------------
+# Tâches communes : prépare le projet Compose utilisable DEPUIS le conteneur.
+#
+# Compose s'exécute ici (dans ansible-runner), mais c'est le démon Docker, côté hôte,
+# qui monte les fichiers (nginx.conf, clés JWT...). Un chemin relatif du
+# docker-compose.yml (./gateway/nginx.conf) serait résolu en /workspace/..., chemin
+# que l'hôte ne connaît pas. On lit donc, dans les montages de CE conteneur, l'endroit
+# où l'hôte voit le dépôt (source du montage /workspace), on fait résoudre les chemins
+# par « docker compose config », puis on remplace le préfixe /workspace par ce chemin
+# dans les clés qui désignent un fichier de l'hôte (source:, file:, context:).
+# Les variables ${...} ne sont pas interpolées (--no-interpolate) : aucun secret n'est
+# écrit dans le fichier temporaire ; compose lira infra/.env au moment du « up ».
+#
+# Produit : compose_project_dir  dossier temporaire contenant le docker-compose.yml résolu
+#           compose_images       service -> image (ex. api -> poupal/api:0.1.0)
+#           managed_services     services du fichier compose que les playbooks peuvent gérer
+# ---------------------------------------------------------------------------
+- name: Inspecter le conteneur ansible-runner lui-même (son nom d'hôte est son identifiant)
+  community.docker.docker_container_info:
+    name: "{{ lookup('env', 'HOSTNAME') }}"
+  register: runner_info
+  no_log: true   # l'inspection complète contient l'environnement du conteneur (mot de passe du smoke test)
+
+- name: Retrouver le dépôt tel que l'hôte Docker le voit (source du montage /workspace)
+  vars:
+    backslash: "\\"   # un antislash, défini en YAML plutôt que dans l'expression Jinja
+  ansible.builtin.set_fact:
+    # Hôte Linux : /home/.../workshop. Hôte Windows (Docker Desktop) : C:\...\workshop,
+    # réécrit avec des « / » (forme également acceptée par Docker Desktop, plus simple à manipuler).
+    host_repo_dir: >-
+      {{ (runner_info.container.Mounts | default([]))
+         | selectattr('Destination', 'equalto', '/workspace')
+         | map(attribute='Source') | first | default('')
+         | replace(backslash, '/') }}
+  when: runner_info.exists
+
+- name: Vérifier que le montage /workspace a été trouvé
+  ansible.builtin.assert:
+    that: host_repo_dir | default('') | length > 0
+    fail_msg: "Montage /workspace introuvable : lancer ce playbook via « docker compose run --rm ansible-runner » (voir README.md)."
+    quiet: true
+
+- name: Créer un dossier temporaire pour le projet résolu
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: poupal-compose-
+  register: compose_tmp
+
+- name: Résoudre le docker-compose.yml (chemins absolus, variables conservées)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - --project-name
+      - "{{ project }}"
+      - --file
+      - "{{ compose_file }}"
+      - --project-directory
+      - "{{ project_dir }}"
+      - --env-file
+      - "{{ project_dir }}/.env"
+      - config
+      - --no-interpolate
+  register: compose_resolved
+  changed_when: false
+
+- name: Écrire le projet résolu (fichier temporaire, détruit avec le conteneur)
+  ansible.builtin.copy:
+    content: "{{ compose_resolved.stdout }}"
+    dest: "{{ compose_tmp.path }}/docker-compose.yml"
+    mode: "0600"
+
+- name: Remplacer le préfixe /workspace par le chemin de l'hôte dans les fichiers montés
+  ansible.builtin.replace:
+    path: "{{ compose_tmp.path }}/docker-compose.yml"
+    # Seules les clés source: / file: / context: désignent un fichier de l'hôte
+    # (target: et working_dir: sont des chemins DANS les conteneurs : inchangés)
+    regexp: '^(\s*(?:source|file|context): )/workspace(?=/|$)'
+    replace: '\1{{ host_repo_dir }}'
+
+- name: Lire les images des services (configuration interpolée, gardée en mémoire seulement)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - --project-name
+      - "{{ project }}"
+      - --file
+      - "{{ compose_file }}"
+      - --project-directory
+      - "{{ project_dir }}"
+      - config
+      - --format
+      - json
+  register: compose_json
+  changed_when: false
+  no_log: true   # la configuration interpolée contient les mots de passe de infra/.env
+
+- name: Mémoriser le dossier du projet et les images (chaque service déclare une image)
+  ansible.builtin.set_fact:
+    compose_project_dir: "{{ compose_tmp.path }}"
+    compose_images: >-
+      {{ dict((compose_json.stdout | from_json).services.keys() | list
+              | zip((compose_json.stdout | from_json).services.values() | map(attribute='image') | list)) }}
+
+- name: Services gérés = services du fichier compose, sauf les proxys du socket et l'exécuteur
+  ansible.builtin.set_fact:
+    managed_services: "{{ compose_images.keys() | reject('in', excluded_services) | list | sort }}"

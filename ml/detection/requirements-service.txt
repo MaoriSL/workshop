@@ -1,0 +1,9 @@
+# Service temps réel (image anomaly-detector) : pas de matplotlib, pas d'entraînement
+pandas==3.0.6
+scikit-learn==1.9.1
+joblib==1.6.0
+numpy>=2
+fastapi==0.147.0
+uvicorn[standard]==0.54.0
+httpx==0.28.1
+prometheus-client==0.26.0

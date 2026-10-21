@@ -1,0 +1,113 @@
+/* ------------------------------------------------------------------
+   Poupal — feuille de style globale (Tailwind CSS v4)
+   Les couleurs, polices et ombres de la marque sont déclarées ici
+   comme "design tokens" : Tailwind génère ensuite les classes
+   (bg-primary, text-ink, shadow-soft, ...) à partir de ces variables.
+   ------------------------------------------------------------------ */
+@import 'tailwindcss';
+
+@theme {
+  /* Palette Poupal */
+  --color-surface: #f5f7fb; /* fond clair des pages */
+  --color-primary: #1b3a8b; /* bleu primaire (marque) */
+  --color-primary-dark: #142c6b;
+  --color-primary-soft: #e8edfa;
+  --color-accent: #2e6bff; /* CTA / accent */
+  --color-accent-hover: #1f5bea;
+  --color-accent-soft: #eaf0ff;
+  --color-sky: #27b8f5; /* cyan du logo, utilisé dans les dégradés */
+  --color-ink: #10193a; /* texte foncé */
+  --color-muted: #5b6475; /* gris texte */
+  --color-line: #e3e7ef; /* bordures */
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-warning: #d97706;
+  --color-warning-soft: #fef3c7;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  /* Typographie */
+  --font-sans: 'Montserrat', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Ombres douces, typiques des interfaces fintech */
+  --shadow-soft: 0 1px 2px rgba(16, 25, 58, 0.04), 0 8px 24px -8px rgba(16, 25, 58, 0.12);
+  --shadow-card: 0 1px 3px rgba(16, 25, 58, 0.05), 0 16px 40px -16px rgba(16, 25, 58, 0.18);
+  --shadow-glow: 0 10px 30px -10px rgba(46, 107, 255, 0.55);
+
+  /* Animations réutilisables */
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-scale-in: scale-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pop: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-draw: draw 0.6s ease-out 0.3s both;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes draw {
+    from { stroke-dashoffset: 60; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-surface text-ink;
+    font-feature-settings: 'tnum' 1; /* chiffres tabulaires : les montants s'alignent */
+  }
+  /* Focus visible et cohérent partout (accessibilité clavier) */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-primary-dark);
+  }
+}
+
+@layer utilities {
+  /* Conteneur de page standard */
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  /* Dégradé de marque (hero, carte solde) */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, #142c6b 0%, #1b3a8b 45%, #2e6bff 100%);
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(90deg, #1b3a8b, #2e6bff 60%, #27b8f5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}

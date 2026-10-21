@@ -1,0 +1,494 @@
+{
+  "uid": "poupal-security",
+  "title": "Poupal — Sécurité",
+  "tags": [
+    "poupal",
+    "securite"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Alertes de corrélation actives",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(poupal_siem_rule_sources) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{rule}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Règles de sécurité déclenchées",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "count(poupal_siem_rule_sources > 0) or vector(0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{rule}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Blocages WAF / min",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_total{service=\"poupal-gateway\"}[1m]))*0 + (sum(increase(poupal_siem_alerts_total{rule=\"waf_block_burst\"}[10m])) or vector(0))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{rule}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "État remédiation",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_remediation_state",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{rule}}"
+        }
+      ],
+      "options": {
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              },
+              {
+                "color": "blue",
+                "value": 3
+              },
+              {
+                "color": "red",
+                "value": 4
+              },
+              {
+                "color": "purple",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Sources en alerte par règle",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "poupal-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "poupal_siem_rule_sources",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "poupal-prometheus"
+          },
+          "legendFormat": "{{rule}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Événements de sécurité / min",
+      "datasource": {
+        "type": "loki",
+        "uid": "poupal-loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(count_over_time({service=\"poupal-auth\"} | json | event=~`login_failed|login_rate_limited` [1m]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          },
+          "legendFormat": "échecs connexion"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(count_over_time({service=\"poupal-waf\"} |= `ModSecurity: Access denied` [1m]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          },
+          "legendFormat": "blocages WAF"
+        },
+        {
+          "refId": "C",
+          "expr": "sum(count_over_time({service=\"poupal-gateway\"} | json | status=`429` [1m]))",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          },
+          "legendFormat": "429 (limitation)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "logs",
+      "title": "Alertes de corrélation (SIEM)",
+      "datasource": {
+        "type": "loki",
+        "uid": "poupal-loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"poupal-siem\"} | json | event=~`security_alert.*` | line_format `{{.event}}  règle={{.rule}}  ip={{.source_ip}}  n={{.count}}  → incident {{.incident_hint}}`",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    },
+    {
+      "id": 8,
+      "type": "logs",
+      "title": "Blocages WAF (règles OWASP CRS)",
+      "datasource": {
+        "type": "loki",
+        "uid": "poupal-loki"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"poupal-waf\"} |= `ModSecurity: Access denied`",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    },
+    {
+      "id": 9,
+      "type": "logs",
+      "title": "Actions de remédiation déclenchées",
+      "datasource": {
+        "type": "loki",
+        "uid": "poupal-loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"remediation\"} | json | event=`remediation_action` | line_format `{{.action}}  cible={{.service_target}}  résultat={{.result}}  ({{.duration_s}}s)`",
+          "datasource": {
+            "type": "loki",
+            "uid": "poupal-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  }
+}

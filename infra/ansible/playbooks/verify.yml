@@ -1,0 +1,81 @@
+---
+# ---------------------------------------------------------------------------
+# verify.yml — prouve que la plateforme fonctionne APRÈS un incident / une action :
+#   1. smoke test de bout en bout (login → virement de 1,00 € → solde débité),
+#   2. contrôle de cohérence du ledger (GET /internal/consistency, réseau Docker).
+# Affiche « VERIFY OK » ou « VERIFY KO » ; code de retour non nul si KO.
+# Usage : ansible-playbook playbooks/verify.yml
+# ---------------------------------------------------------------------------
+- name: Vérifier la plateforme Poupal (smoke test + cohérence)
+  hosts: localhost
+  gather_facts: false
+  vars:
+    action_name: verify
+    service_target: "-"
+
+  tasks:
+    - name: Démarrer le chronomètre de l'action
+      ansible.builtin.set_fact:
+        remediation_started: "{{ now(utc=true).timestamp() }}"
+        remediation_result: ko
+        remediation_details: ""
+
+    - name: Vérification (journalisée quoi qu'il arrive)
+      block:
+        - name: Smoke test de bout en bout (scripts/smoke_test.py, mot de passe via SMOKE_PASSWORD)
+          ansible.builtin.command:
+            argv:
+              - python3
+              - /workspace/scripts/smoke_test.py
+              - --base-url
+              - "{{ base_url }}"
+              - --internal-url
+              - "{{ internal_url }}"
+          register: smoke
+          changed_when: false
+          failed_when: false
+
+        - name: Résultat du smoke test
+          ansible.builtin.debug:
+            msg: "{{ smoke.stdout_lines + smoke.stderr_lines }}"
+
+        - name: Contrôle de cohérence du ledger
+          ansible.builtin.uri:
+            url: "{{ internal_url }}/internal/consistency"
+            return_content: true
+            timeout: 10
+          register: consistency
+          failed_when: false
+
+        - name: Résultat du contrôle de cohérence
+          ansible.builtin.debug:
+            msg: "HTTP {{ consistency.status | default('injoignable') }} : {{ consistency.json | default(consistency.msg | default('')) }}"
+
+        - name: Verdict
+          ansible.builtin.set_fact:
+            verify_ok: "{{ smoke.rc == 0 and (consistency.status | default(0)) == 200 and (consistency.json.status | default('ko')) == 'ok' }}"
+
+        - name: Noter le résultat
+          ansible.builtin.set_fact:
+            remediation_result: "{{ 'ok' if verify_ok | bool else 'ko' }}"
+            remediation_details: >-
+              smoke test {{ 'OK' if smoke.rc == 0 else 'KO (code ' ~ smoke.rc ~ ')' }},
+              cohérence {{ consistency.json.status | default('injoignable') }}
+
+      rescue:
+        - name: Noter l'échec
+          ansible.builtin.set_fact:
+            remediation_details: "{{ ansible_failed_task.name }} : {{ ansible_failed_result.msg | default('voir la sortie ci-dessus') }}"
+
+      always:
+        - name: Journaliser l'action (stdout + Loki)
+          ansible.builtin.include_tasks: _log_action.yml
+
+        - name: Verdict final
+          ansible.builtin.debug:
+            msg: "{{ 'VERIFY OK' if remediation_result == 'ok' else 'VERIFY KO' }} — {{ remediation_details }}"
+
+        - name: Terminer en erreur si la vérification a échoué
+          ansible.builtin.fail:
+            msg: "VERIFY KO : {{ remediation_details }}"
+          when: remediation_result != 'ok'

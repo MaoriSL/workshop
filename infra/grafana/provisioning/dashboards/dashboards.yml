@@ -1,0 +1,14 @@
+# Tableaux de bord provisionnés depuis infra/grafana/dashboards/*.json (lecture seule).
+apiVersion: 1
+
+providers:
+  - name: poupal
+    orgId: 1
+    folder: Poupal
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false
