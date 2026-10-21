@@ -46,6 +46,25 @@ export async function askAssistant(question: string): Promise<AssistantResponse>
   return (await res.json()) as AssistantResponse
 }
 
+export async function summarizeIncident(incident: Incident): Promise<AssistantResponse> {
+  const res = await fetch('/assistant/incident-summary', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ incident }),
+  })
+  if (!res.ok) {
+    let detail = `HTTP ${res.status} sur /assistant/incident-summary`
+    try {
+      const payload = (await res.json()) as { detail?: string }
+      if (payload.detail) detail = payload.detail
+    } catch {
+      // Keep the HTTP error when the gateway does not return JSON.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as AssistantResponse
+}
+
 // Délais du protocole de repli (voir contrat d'API).
 const HEARTBEAT_TIMEOUT_MS = 6_000 // aucun message SSE depuis 6 s → flux considéré mort
 const POLL_INTERVAL_MS = 2_000 // polling GET state toutes les 2 s

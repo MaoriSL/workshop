@@ -6,7 +6,7 @@ import os
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -40,6 +40,10 @@ class QueryResponse(BaseModel):
     answer: str
     sources: list[Source]
     model: str
+
+
+class IncidentSummaryRequest(BaseModel):
+    incident: dict[str, Any]
 
 
 class Document:
@@ -113,6 +117,29 @@ def ask_model(question: str, context: str) -> str:
     return str(response.content).strip()
 
 
+def incident_context(incident: dict[str, Any]) -> str:
+    timeline = incident.get("timeline") or []
+    lines = [
+        f"Identifiant : {incident.get('incident_id', 'inconnu')}",
+        f"Type : {incident.get('incident_type', 'inconnu')}",
+        f"Service suspecté : {incident.get('suspected_service', 'inconnu')}",
+        f"Détection : {incident.get('detected_at', 'inconnue')}",
+        f"Réception par le moteur : {incident.get('received_at', 'inconnue')}",
+        f"État final : {incident.get('state', 'inconnu')}",
+        f"Fin de remédiation : {incident.get('resolved_at', 'inconnue')}",
+        f"Durée détection → preuve : {incident.get('recovery_seconds', 'inconnue')} secondes",
+        f"Actions exécutées : {incident.get('actions_done', 0)}",
+        "Chronologie exacte :",
+    ]
+    for entry in timeline:
+        lines.append(
+            f"- {entry.get('t', 'heure inconnue')} | {entry.get('step', 'étape inconnue')} | "
+            f"{entry.get('label', '')} | détails={entry.get('details', {})}"
+        )
+    lines.append(f"Preuve de reprise : {incident.get('proof') or 'absente'}")
+    return "\n".join(lines)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     logger.info(
@@ -159,5 +186,31 @@ def query(payload: QueryRequest) -> QueryResponse:
     return QueryResponse(
         answer=answer,
         sources=[Source(path=str(document.path), score=score) for document, score in results if score > 0],
+        model=OLLAMA_MODEL,
+    )
+
+
+@app.post("/incident-summary", response_model=QueryResponse)
+def incident_summary(payload: IncidentSummaryRequest) -> QueryResponse:
+    incident = payload.incident
+    if not incident.get("incident_id") or not incident.get("timeline"):
+        raise HTTPException(status_code=422, detail="Incident incomplet : identifiant ou chronologie absent.")
+    question = (
+        "Rédige un résumé opérationnel de cet incident en français. Donne explicitement, "
+        "dans cet ordre : 1) heure exacte de détection, 2) heure et nature de l'arrêt ou "
+        "du confinement de l'attaque si elle apparaît dans la chronologie, 3) actions "
+        "automatiques réalisées et leurs heures, 4) heure exacte où les services ont été "
+        "rétablis, 5) preuve de reprise et durée totale. Utilise les dates ISO fournies, "
+        "ne les invente pas et signale clairement toute information absente. Termine par "
+        "une phrase rappelant qu'il s'agit de l'environnement de démonstration fictif."
+    )
+    try:
+        answer = ask_model(question, incident_context(incident))
+    except Exception as exc:
+        logger.error("incident_summary_failed error=%s", exc)
+        raise HTTPException(status_code=503, detail="Le modèle Ollama est indisponible.") from exc
+    return QueryResponse(
+        answer=answer,
+        sources=[Source(path="incident-runtime", score=1)],
         model=OLLAMA_MODEL,
     )

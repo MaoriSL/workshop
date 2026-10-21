@@ -1,14 +1,37 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { askAssistant, type AssistantResponse } from '@/api/client'
+import { askAssistant, summarizeIncident, type AssistantResponse } from '@/api/client'
+import type { Incident } from '@/api/types'
 
 const DEFAULT_QUESTION = 'Comment fonctionne la remédiation automatique ?'
 
-export default function AssistantPanel() {
+export default function AssistantPanel({ incident }: { incident: Incident | null }) {
   const [question, setQuestion] = useState('')
   const [response, setResponse] = useState<AssistantResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!incident) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    void summarizeIncident(incident)
+      .then((result) => {
+        if (!cancelled) {
+          setResponse(result)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Résumé indisponible.')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [incident?.incident_id])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -36,8 +59,8 @@ export default function AssistantPanel() {
     <div className="flex h-full min-h-0 flex-col gap-[1.2vh]">
       <div className="shrink-0">
         <p className="t-body text-muted">
-          Posez une question sur la plateforme. L’assistant répond à partir des documents fictifs du projet
-          via le modèle Ollama de démonstration.
+          Posez une question sur la plateforme. Lorsqu’un incident est détecté, l’assistant
+          génère automatiquement son résumé à partir de la chronologie réelle de la remédiation.
         </p>
       </div>
 
@@ -81,7 +104,9 @@ export default function AssistantPanel() {
         {response ? (
           <div className="flex flex-col gap-3">
             <div>
-              <h3 className="t-small mb-1 font-semibold uppercase tracking-wider text-muted">Réponse</h3>
+              <h3 className="t-small mb-1 font-semibold uppercase tracking-wider text-muted">
+                {incident ? 'Résumé de l’incident' : 'Réponse'}
+              </h3>
               <p className="t-body whitespace-pre-wrap leading-relaxed">{response.answer}</p>
             </div>
             <div className="border-t border-line pt-3">
@@ -104,7 +129,7 @@ export default function AssistantPanel() {
           </div>
         ) : (
           <div className="t-body flex h-full items-center justify-center text-center text-muted">
-            La réponse de l’assistant apparaîtra ici.
+            {incident ? 'Génération du résumé de l’incident…' : 'La réponse de l’assistant apparaîtra ici.'}
           </div>
         )}
       </section>

@@ -57,13 +57,15 @@ export default function App() {
             </div>
           </div>
           <div className="min-h-0 flex-1">
-            {view === 'timeline' ? (
+            <div className={view === 'timeline' ? 'h-full' : 'hidden'}>
               <IncidentTimeline incident={incident} lastProof={state?.last_proof ?? null} />
-            ) : view === 'history' ? (
+            </div>
+            <div className={view === 'history' ? 'h-full' : 'hidden'}>
               <HistoryPanel incidents={incidents} />
-            ) : (
-              <AssistantPanel />
-            )}
+            </div>
+            <div className={view === 'assistant' ? 'h-full' : 'hidden'}>
+              <AssistantPanel incident={incident} />
+            </div>
           </div>
         </section>
       </main>
