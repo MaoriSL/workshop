@@ -16,6 +16,36 @@ export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undef
 /** Mode démonstration : données embarquées, aucun appel réseau. */
 export const USE_MOCK: boolean = import.meta.env.VITE_USE_MOCK === 'true'
 
+export interface AssistantSource {
+  path: string
+  score: number
+}
+
+export interface AssistantResponse {
+  answer: string
+  sources: AssistantSource[]
+  model: string
+}
+
+export async function askAssistant(question: string): Promise<AssistantResponse> {
+  const res = await fetch('/assistant/query', {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  })
+  if (!res.ok) {
+    let detail = `HTTP ${res.status} sur /assistant/query`
+    try {
+      const payload = (await res.json()) as { detail?: string }
+      if (payload.detail) detail = payload.detail
+    } catch {
+      // Keep the HTTP error when the gateway does not return JSON.
+    }
+    throw new Error(detail)
+  }
+  return (await res.json()) as AssistantResponse
+}
+
 // Délais du protocole de repli (voir contrat d'API).
 const HEARTBEAT_TIMEOUT_MS = 6_000 // aucun message SSE depuis 6 s → flux considéré mort
 const POLL_INTERVAL_MS = 2_000 // polling GET state toutes les 2 s

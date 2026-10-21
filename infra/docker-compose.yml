@@ -130,6 +130,7 @@ services:
       auth: { condition: service_healthy }
       api: { condition: service_healthy }
       front: { condition: service_started }
+      assistant: { condition: service_healthy }
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/gateway/health >/dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -610,6 +611,27 @@ services:
     security_opt: ["no-new-privileges:true"]
     expose: ["80"]
     deploy: { resources: { limits: { memory: 48m } } }
+    networks: [edge]
+    logging: *default-logging
+    restart: unless-stopped
+
+  # ======================= Assistant RAG (Ollama distant) =======================
+  # Les documents sont embarqués dans l'image ; le modèle reste sur le PC Windows
+  # du groupe et n'est jamais téléchargé dans la plateforme.
+  assistant:
+    build:
+      context: ..
+      dockerfile: ml/assistant/Dockerfile
+    image: poupal/assistant:${ASSISTANT_IMAGE_TAG:-0.1.0}
+    container_name: poupal-assistant
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:?OLLAMA_BASE_URL manquant dans infra/.env}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen3:4b}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    expose: ["8012"]
+    deploy: { resources: { limits: { memory: 256m } } }
     networks: [edge]
     logging: *default-logging
     restart: unless-stopped

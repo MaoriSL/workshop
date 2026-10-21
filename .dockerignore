@@ -4,7 +4,9 @@
 ml/detection/reports/
 ml/detection/tests/
 ml/detection/models/
+!ml/assistant/
 !services/remediation/
+!docs/
 services/remediation/app/tests/
 !scripts/smoke_test.py
 **/__pycache__/

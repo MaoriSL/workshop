@@ -8,6 +8,7 @@
 // ---------------------------------------------------------------------------
 import { useState } from 'react'
 import { API_BASE } from '@/api/client'
+import AssistantPanel from '@/components/AssistantPanel'
 import GlobalBanner from '@/components/GlobalBanner'
 import HistoryPanel from '@/components/HistoryPanel'
 import IncidentTimeline from '@/components/IncidentTimeline'
@@ -15,7 +16,7 @@ import ScoreChart from '@/components/ScoreChart'
 import ServiceTiles from '@/components/ServiceTiles'
 import { useLiveState } from '@/hooks/useLiveState'
 
-type View = 'timeline' | 'history'
+type View = 'timeline' | 'history' | 'assistant'
 
 export default function App() {
   const { state, status, incidents, isMock } = useLiveState()
@@ -50,13 +51,18 @@ export default function App() {
               <TabButton active={view === 'history'} onClick={() => setView('history')}>
                 Historique ({incidents.length})
               </TabButton>
+              <TabButton active={view === 'assistant'} onClick={() => setView('assistant')}>
+                Assistant RAG
+              </TabButton>
             </div>
           </div>
           <div className="min-h-0 flex-1">
             {view === 'timeline' ? (
               <IncidentTimeline incident={incident} lastProof={state?.last_proof ?? null} />
-            ) : (
+            ) : view === 'history' ? (
               <HistoryPanel incidents={incidents} />
+            ) : (
+              <AssistantPanel />
             )}
           </div>
         </section>
