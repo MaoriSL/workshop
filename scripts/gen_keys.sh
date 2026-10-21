@@ -19,8 +19,10 @@ echo "Génération d'une clé RSA 2048 bits dans $OUT_DIR ..."
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$PRIVATE" 2>/dev/null
 openssl pkey -in "$PRIVATE" -pubout -out "$PUBLIC" 2>/dev/null
 
-# Lecture seule pour l'utilisateur courant uniquement (sans effet sur Windows/NTFS).
-chmod 600 "$PRIVATE" 2>/dev/null || true
+# Compose monte les secrets locaux en conservant les permissions du fichier source.
+# L'auth tourne en uid non-root dans le conteneur : la clé doit donc être lisible
+# par cet utilisateur, tout en restant absente de Git via .gitignore.
+chmod 644 "$PRIVATE" 2>/dev/null || true
 chmod 644 "$PUBLIC" 2>/dev/null || true
 
 echo "OK : $PRIVATE (privée, auth uniquement) et $PUBLIC (publique, auth + api)."
