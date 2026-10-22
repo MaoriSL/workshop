@@ -16,6 +16,8 @@ import { demoAccount, demoTransactions } from './mock/data'
 import { wait } from './mock/delay'
 import { isValidEmail } from '@/utils/format'
 
+const TRANSACTION_RETRY_DELAYS_MS = [2000, 4000, 8000, 12000, 15000, 15000]
+
 // --- État du mock (copie des données de démo, modifiable pendant la session) ---
 let mockAccount: Account = { ...demoAccount }
 let mockTransactions: Transaction[] = [...demoTransactions]
@@ -81,15 +83,28 @@ export async function sendMoney(data: SendMoneyRequest): Promise<Transaction> {
     throw new ApiError(422, 'Indiquez l’adresse email du destinataire.', 'validation_error')
   }
 
-  const created = await request<ApiTransaction>('/api/transactions', {
-    method: 'POST',
-    body: {
-      recipient_email: recipientEmail,
-      amount_cents: eurosToCents(data.amount),
-      message: data.message?.trim() || null,
-    },
-    // Une même clé = une seule transaction, même si la requête est rejouée (double clic, réseau)
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-  })
-  return toTransaction(created)
+  const body = {
+    recipient_email: recipientEmail,
+    amount_cents: eurosToCents(data.amount),
+    message: data.message?.trim() || null,
+  }
+  // La clé est créée avant le premier essai et réutilisée pour tous les rejeux.
+  // Ainsi, une réponse perdue après commit ne peut pas créer un second virement.
+  const idempotencyKey = crypto.randomUUID()
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const created = await request<ApiTransaction>('/api/transactions', {
+        method: 'POST',
+        body,
+        headers: { 'Idempotency-Key': idempotencyKey },
+      })
+      return toTransaction(created)
+    } catch (error) {
+      const retryable = error instanceof ApiError && (error.status === 0 || error.status >= 500)
+      const delay = TRANSACTION_RETRY_DELAYS_MS[attempt]
+      if (!retryable || delay === undefined) throw error
+      await wait(delay)
+    }
+  }
 }

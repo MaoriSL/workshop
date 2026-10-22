@@ -467,6 +467,7 @@ services:
   # cible hors de la plage privée (target.py) et n'exécute que des scénarios de la liste blanche.
   # Écrit la fenêtre de chaque attaque dans ml/data/labels.csv (étiquetage pour la détection).
   attack-orchestrator:
+    profiles: ["attack"]
     build:
       context: ../security/attack-console
       dockerfile: orchestrator/Dockerfile
@@ -488,6 +489,7 @@ services:
     restart: unless-stopped
 
   attack-console:
+    profiles: ["attack"]
     build:
       context: ../security/attack-console/frontend
     image: poupal/attack-console:${ATTACK_CONSOLE_IMAGE_TAG:-0.1.0}
