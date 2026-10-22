@@ -56,7 +56,16 @@ Voir `src/api/types.ts`. Résumé :
 - `GET {base}/state` → `State` ; `GET {base}/events` → SSE `event: state`.
 - `POST {base}/scenarios/{id}/start` `{ params }` → `202 { run_id }` / `409` / `403`.
 - `POST {base}/scenarios/{id}/stop`, `POST {base}/stop-all` → `200`.
+- `POST {base}/target` `{ url }` → change la cible privée quand aucune attaque ne tourne.
 - `GET {base}/journal` → `{ items }` ; `GET {base}/journal.csv` → fichier CSV.
+
+## Démonstration sur deux PC
+
+Sur le PC qui héberge Poupal, relever l'adresse IPv4 du réseau privé et le port
+`GATEWAY_PORT` (par défaut `18080`). Depuis la console du PC attaquant, saisir
+`http://ADRESSE_DU_PC_POUPAL:PORT` dans le champ **cible**, puis cliquer sur
+**Appliquer**. La validation serveur refuse les adresses publiques, les noms non
+résolus et les URL contenant des identifiants ou des paramètres.
 
 ## Structure
 ```

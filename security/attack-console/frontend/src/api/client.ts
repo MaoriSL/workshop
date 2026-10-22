@@ -15,7 +15,7 @@
 // Aucune commande libre : les paramètres proviennent des schémas bornés des
 // scénarios et sont transmis tels quels.
 // ---------------------------------------------------------------------------
-import type { ConnectionStatus, JournalEntry, State } from './types'
+import type { ConnectionStatus, JournalEntry, State, TargetUpdate } from './types'
 
 /** Base URL de l'API (même origine ; en dev, proxifiée vers localhost:8099). */
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || '/api'
@@ -39,6 +39,7 @@ export interface AttackApi {
   subscribe: (cb: SubscribeCallbacks) => () => void
   fetchJournal: () => Promise<JournalEntry[]>
   startScenario: (id: string, params: Record<string, number | string>) => Promise<{ run_id: string }>
+  setTarget: (url: string) => Promise<TargetUpdate>
   stopScenario: (id: string) => Promise<void>
   stopAll: () => Promise<void>
   exportJournalCsv: () => void
@@ -56,7 +57,16 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status} sur ${path}`)
+  if (!res.ok) {
+    let message = `HTTP ${res.status} sur ${path}`
+    try {
+      const error = (await res.json()) as { message?: string }
+      if (error.message) message = error.message
+    } catch {
+      // La réponse d'erreur peut être vide ou non JSON.
+    }
+    throw new Error(message)
+  }
   // Certaines réponses (stop, stop-all) n'ont pas de corps JSON.
   const text = await res.text()
   return (text ? JSON.parse(text) : {}) as T
@@ -73,6 +83,10 @@ export async function fetchJournal(): Promise<JournalEntry[]> {
 
 export function startScenario(id: string, params: Record<string, number | string>): Promise<{ run_id: string }> {
   return postJson<{ run_id: string }>(`/scenarios/${id}/start`, { params })
+}
+
+export function setTarget(url: string): Promise<TargetUpdate> {
+  return postJson<TargetUpdate>('/target', { url })
 }
 
 export async function stopScenario(id: string): Promise<void> {
@@ -194,6 +208,7 @@ export const realApi: AttackApi = {
   subscribe: subscribeState,
   fetchJournal,
   startScenario,
+  setTarget,
   stopScenario,
   stopAll,
   exportJournalCsv,

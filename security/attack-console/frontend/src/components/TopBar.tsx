@@ -6,6 +6,7 @@
 //  - GROS bouton Arrêt d'urgence (rouge, en haut à droite).
 // ---------------------------------------------------------------------------
 import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import type { ConnectionStatus, State } from '@/api/types'
 import { formatTime } from '@/utils/format'
 
@@ -14,6 +15,7 @@ interface Props {
   status: ConnectionStatus
   isMock: boolean
   onStopAll: () => void
+  onSetTarget: (url: string) => Promise<void>
 }
 
 /** Indicateur de liaison avec l'orchestrateur. */
@@ -35,7 +37,7 @@ function ConnectionBadge({ status }: { status: ConnectionStatus }) {
   )
 }
 
-export default function TopBar({ state, status, isMock, onStopAll }: Props) {
+export default function TopBar({ state, status, isMock, onStopAll, onSetTarget }: Props) {
   // Horloge : mise à jour chaque seconde.
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -45,6 +47,22 @@ export default function TopBar({ state, status, isMock, onStopAll }: Props) {
 
   const inLab = state?.in_lab ?? true
   const target = state?.target ?? '—'
+  const [targetInput, setTargetInput] = useState(target)
+  const [targetError, setTargetError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (state?.target) setTargetInput(state.target)
+  }, [state?.target])
+
+  const submitTarget = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setTargetError(null)
+    try {
+      await onSetTarget(targetInput)
+    } catch (error) {
+      setTargetError(error instanceof Error ? error.message : 'Cible refusée.')
+    }
+  }
 
   return (
     <header className="flex shrink-0 flex-col gap-[1vh]">
@@ -95,17 +113,31 @@ export default function TopBar({ state, status, isMock, onStopAll }: Props) {
           Laboratoire fictif — attaques limitées à notre plateforme.
         </span>
 
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
           {state?.emergency_stopped && (
             <span className="t-small animate-pulse-soft rounded-full bg-danger/20 px-3 py-1 font-bold uppercase tracking-wide text-danger">
               arrêt d’urgence actif
             </span>
           )}
-          <span className="t-body inline-flex items-center gap-2 rounded-lg bg-night/60 px-3 py-1 font-medium">
-            <span className="t-small uppercase tracking-widest text-muted">cible</span>
-            <span className="font-semibold tabular-nums">{target}</span>
+          <form onSubmit={submitTarget} className="flex min-w-0 flex-1 items-center justify-end gap-2">
+            <label className="t-small flex min-w-0 items-center gap-2 uppercase tracking-widest text-muted">
+              cible
+              <input
+                value={targetInput}
+                onChange={(event) => setTargetInput(event.target.value)}
+                className="t-body min-w-0 flex-1 rounded-lg border border-line bg-night px-3 py-1.5 font-medium normal-case tracking-normal text-ink outline-none focus:border-accent"
+                placeholder="http://192.168.1.20:18080"
+                aria-label="Adresse HTTP de la plateforme à attaquer"
+              />
+            </label>
+            <button
+              type="submit"
+              className="t-small rounded-lg bg-accent px-3 py-1.5 font-bold uppercase tracking-wide text-white transition hover:brightness-110 active:scale-95"
+            >
+              Appliquer
+            </button>
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 t-small font-bold uppercase tracking-wide ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 t-small font-bold uppercase tracking-wide ${
                 inLab ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'
               }`}
             >
@@ -115,9 +147,10 @@ export default function TopBar({ state, status, isMock, onStopAll }: Props) {
               />
               {inLab ? 'périmètre OK' : 'hors zone'}
             </span>
-          </span>
+          </form>
         </div>
       </div>
+      {targetError && <p className="t-small text-right font-semibold text-danger">{targetError}</p>}
     </header>
   )
 }

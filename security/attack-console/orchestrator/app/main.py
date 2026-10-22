@@ -25,15 +25,16 @@ from scenarios import SCENARIOS  # noqa: E402
 
 from .labels import SCENARIO_TO_LABEL  # noqa: E402
 from .runner import RunManager  # noqa: E402
-from .target import TARGET_URL, check_target  # noqa: E402
+from .target import TARGET_URL, check_target, normalize_target  # noqa: E402
 
 SERVICE_NAME = "poupal-attack-console"
 
 logging.basicConfig(level="INFO", format='{"service":"%(name)s","level":"%(levelname)s","message":"%(message)s"}')
 logger = logging.getLogger("attack-console")
 
-in_lab, lab_reason = check_target(TARGET_URL)
-manager = RunManager(TARGET_URL)
+target_url = TARGET_URL
+in_lab, lab_reason = check_target(target_url)
+manager = RunManager(target_url)
 _version = 0
 _emergency = False
 
@@ -48,7 +49,7 @@ manager.on_change = bump
 
 def build_state() -> dict:
     return {
-        "target": TARGET_URL,
+        "target": target_url,
         "in_lab": in_lab,
         "lab_reason": lab_reason,
         "emergency_stopped": _emergency,
@@ -97,6 +98,24 @@ async def api_start(scenario_id: str, request: Request) -> JSONResponse:
     _emergency = False
     logger.info(json.dumps({"event": "attack_started", "scenario": scenario_id, "run_id": run.run_id, "params": run.params}))
     return JSONResponse(status_code=202, content={"run_id": run.run_id})
+
+
+@app.post("/api/target")
+async def api_target(request: Request) -> JSONResponse:
+    global target_url, in_lab, lab_reason
+    try:
+        body = await request.json()
+        requested_target = normalize_target(str((body or {}).get("url", "")))
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        return JSONResponse(status_code=400, content={"message": str(exc), "code": "invalid_target"})
+    if manager.any_active():
+        return JSONResponse(status_code=409, content={"message": "Impossible de modifier la cible pendant une attaque.", "code": "attack_in_progress"})
+    target_url = requested_target
+    in_lab, lab_reason = check_target(target_url)
+    manager.set_target(target_url)
+    bump()
+    logger.info(json.dumps({"event": "target_changed", "target": target_url, "in_lab": in_lab, "reason": lab_reason}))
+    return JSONResponse(status_code=200, content={"target": target_url, "in_lab": in_lab, "lab_reason": lab_reason})
 
 
 @app.post("/api/scenarios/{scenario_id}/stop")

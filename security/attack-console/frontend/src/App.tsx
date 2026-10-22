@@ -43,6 +43,10 @@ export default function App() {
     api.stopAll().catch(() => flashError('Échec de l’arrêt d’urgence.'))
   }, [])
 
+  const handleSetTarget = useCallback(async (url: string) => {
+    await api.setTarget(url)
+  }, [])
+
   const handleExport = useCallback(() => {
     try {
       api.exportJournalCsv()
@@ -57,7 +61,7 @@ export default function App() {
         inLab ? '' : 'ring-4 ring-inset ring-danger'
       }`}
     >
-      <TopBar state={state} status={status} isMock={isMock} onStopAll={handleStopAll} />
+      <TopBar state={state} status={status} isMock={isMock} onStopAll={handleStopAll} onSetTarget={handleSetTarget} />
 
       {/* Écran d'alerte : cible hors périmètre → tout est verrouillé. */}
       {!inLab && (

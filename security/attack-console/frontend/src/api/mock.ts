@@ -11,7 +11,7 @@
 // l'état « hors périmètre » (in_lab=false) pour tester l'écran d'alerte rouge.
 // ---------------------------------------------------------------------------
 import type { AttackApi, SubscribeCallbacks } from './client'
-import type { JournalEntry, Run, RunStatus, Scenario, ScenarioId, State } from './types'
+import type { JournalEntry, Run, RunStatus, Scenario, ScenarioId, State, TargetUpdate } from './types'
 
 // --- Catalogue des scénarios (schémas de paramètres BORNÉS) -----------------
 const SCENARIOS: Scenario[] = [
@@ -85,10 +85,10 @@ const SCENARIOS: Scenario[] = [
 ]
 
 // --- État interne de la simulation ------------------------------------------
-const TARGET = 'poupal-gateway:8080  ·  réseau RESILIENCE-G1 (plage privée)'
+let target = 'poupal-gateway:8080  ·  réseau RESILIENCE-G1 (plage privée)'
 // Périmètre : forçable à « hors zone » via ?lab=off pour la vérification.
-const IN_LAB = !(typeof location !== 'undefined' && /(?:^|[?&])lab=off(?:&|$)/.test(location.search))
-const LAB_REASON = IN_LAB
+let inLab = !(typeof location !== 'undefined' && /(?:^|[?&])lab=off(?:&|$)/.test(location.search))
+let labReason = inLab
   ? ''
   : 'Cible hors de la plage autorisée (10.42.0.0/24). Attaques désactivées par sécurité.'
 
@@ -275,9 +275,9 @@ let ticker: ReturnType<typeof setInterval> | null = null
 
 function buildState(): State {
   return {
-    target: TARGET,
-    in_lab: IN_LAB,
-    lab_reason: LAB_REASON,
+    target,
+    in_lab: inLab,
+    lab_reason: labReason,
     updated_at: new Date().toISOString(),
     scenarios: SCENARIOS,
     runs: runs.slice(0, 20), // on garde les plus récents
@@ -314,7 +314,7 @@ function subscribeMock({ onState, onStatus }: SubscribeCallbacks): () => void {
 }
 
 function startScenarioMock(id: string, params: Record<string, number | string>): Promise<{ run_id: string }> {
-  if (!IN_LAB) return Promise.reject(new Error('HTTP 403 : cible hors périmètre'))
+  if (!inLab) return Promise.reject(new Error('HTTP 403 : cible hors périmètre'))
   const already = runs.find((r) => r.scenario_id === id && r.status === 'running')
   if (already) return Promise.reject(new Error('HTTP 409 : un run est déjà en cours'))
   emergencyStopped = false // un lancement lève l'état d'arrêt d'urgence
@@ -322,6 +322,14 @@ function startScenarioMock(id: string, params: Record<string, number | string>):
   runs.unshift(run)
   emit()
   return Promise.resolve({ run_id: run.run_id })
+}
+
+function setTargetMock(url: string): Promise<TargetUpdate> {
+  target = url
+  inLab = true
+  labReason = ''
+  emit()
+  return Promise.resolve({ target, in_lab: inLab, lab_reason: labReason })
 }
 
 function stopScenarioMock(id: string): Promise<void> {
@@ -378,6 +386,7 @@ export const mockApi: AttackApi = {
   subscribe: subscribeMock,
   fetchJournal: fetchJournalMock,
   startScenario: startScenarioMock,
+  setTarget: setTargetMock,
   stopScenario: stopScenarioMock,
   stopAll: stopAllMock,
   exportJournalCsv: exportJournalCsvMock,

@@ -91,3 +91,9 @@ export interface State {
   /** true après un Arrêt d'urgence : tous les scénarios sont à l'arrêt. */
   emergency_stopped: boolean
 }
+
+export interface TargetUpdate {
+  target: string
+  in_lab: boolean
+  lab_reason: string
+}

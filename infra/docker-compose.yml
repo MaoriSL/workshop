@@ -481,8 +481,6 @@ services:
       LABELS_PATH: /labels/labels.csv
     volumes:
       - ../ml/data:/labels                       # étiquetage des attaques (labels.csv)
-    depends_on:
-      waf: { condition: service_healthy }
     expose: ["8099"]
     deploy: { resources: { limits: { memory: 128m } } }
     networks: [edge, console]

@@ -11,7 +11,9 @@ Les attaques ne visent QUE notre SI fictif, sur nos machines, sur le réseau pri
 Jamais le réseau du campus, un autre groupe, un service tiers ou Internet. C'est **implémenté**, pas
 seulement écrit :
 
-- La cible est fixée par configuration (`TARGET_URL` = la gateway/WAF de notre plateforme).
+- La cible est initialisée par configuration (`TARGET_URL`), puis peut être remplacée dans le
+  champ **cible** de la console lorsqu'elle est sur un autre PC. Le changement est refusé pendant
+  une attaque en cours.
 - L'orchestrateur (`security/attack-console/orchestrator/app/target.py`) **refuse de lancer** toute
   attaque si la cible ne résout pas vers `localhost` ou une plage **privée** (RFC 1918, lien local,
   boucle locale, + `ATTACK_ALLOWED_CIDRS`). Une IP publique est rejetée ; la console passe en mode
@@ -28,6 +30,21 @@ n'exécute QUE les scénarios de la **liste blanche** `scenarios/`, avec des par
 À chaque lancement/arrêt, il écrit la fenêtre de l'attaque dans `ml/data/labels.csv` (type, intensité) :
 les attaques deviennent des données **étiquetées** pour évaluer et réentraîner le modèle de détection.
 Journal horodaté exportable en CSV (`/api/journal.csv`).
+
+### Démonstration sur deux PC
+
+Le PC hôte lance Poupal, le WAF et la supervision. Le PC attaquant lance uniquement la console :
+
+```bash
+cd infra
+docker compose up -d attack-orchestrator attack-console
+```
+
+Sur le PC hôte, relever l'IPv4 du réseau privé et le port `GATEWAY_PORT` (par défaut `18080`).
+Dans la console du PC attaquant (`http://localhost:8092`), saisir
+`http://IP_DU_PC_HOTE:GATEWAY_PORT`, puis cliquer sur **Appliquer**. Le port du WAF doit être
+autorisé par le pare-feu du PC hôte et les deux machines doivent être sur le même réseau privé.
+Pour resserrer le confinement, définir par exemple `ATTACK_ALLOWED_CIDRS=192.168.1.0/24`.
 
 ## 2. Scénarios — effet attendu, défense, remédiation
 

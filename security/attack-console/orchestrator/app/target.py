@@ -60,6 +60,12 @@ def check_target(url: str) -> tuple[bool, str]:
     ambiguë). Un nom qui ne résout pas est refusé.
     """
     parsed = urlparse(url if "://" in url else f"http://{url}")
+    if parsed.scheme not in ("http", "https"):
+        return False, "Cible invalide : seuls HTTP et HTTPS sont autorisés."
+    if parsed.username or parsed.password:
+        return False, "Cible invalide : les identifiants intégrés dans l'URL sont interdits."
+    if parsed.query or parsed.fragment:
+        return False, "Cible invalide : les paramètres et fragments d'URL sont interdits."
     host = parsed.hostname
     if not host:
         return False, "Cible invalide : aucun hôte."
@@ -76,3 +82,17 @@ def check_target(url: str) -> tuple[bool, str]:
 
 
 TARGET_URL = os.environ.get("TARGET_URL", "http://gateway:80").rstrip("/")
+
+
+def normalize_target(url: str) -> str:
+    """Normalise une cible saisie dans la console sans modifier son hôte ni son port."""
+    value = url.strip()
+    if not value:
+        raise ValueError("Cible vide.")
+    normalized = value if "://" in value else f"http://{value}"
+    parsed = urlparse(normalized)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise ValueError("Cible invalide : indiquez une adresse HTTP/HTTPS, par exemple http://192.168.1.20:18080.")
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Cible invalide : identifiants, paramètres et fragments interdits.")
+    return normalized.rstrip("/")

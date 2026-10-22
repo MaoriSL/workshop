@@ -63,6 +63,14 @@ class RunManager:
                 return run
         return None
 
+    def any_active(self) -> bool:
+        return any(run.status == "running" for run in self.runs.values())
+
+    def set_target(self, target: str) -> None:
+        if self.any_active():
+            raise RuntimeError("Impossible de modifier la cible pendant une attaque.")
+        self.target = target
+
     def recent(self, limit: int = 30) -> list[Run]:
         return [self.runs[r] for r in reversed(self.order)][:limit]
 

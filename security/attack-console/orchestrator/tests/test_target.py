@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from orchestrator.app.target import check_target
+from orchestrator.app.target import check_target, normalize_target
 
 
 def test_localhost_and_private_are_allowed():
@@ -22,3 +22,13 @@ def test_public_targets_are_refused():
 def test_unresolvable_host_is_refused():
     ok, reason = check_target("http://cible-inexistante-poupal-xyz.invalid")
     assert not ok and "non résolu" in reason
+
+
+def test_target_url_is_normalized_for_remote_demo():
+    assert normalize_target("192.168.1.20:18080") == "http://192.168.1.20:18080"
+
+
+def test_unsafe_target_url_is_rejected():
+    for url in ("ftp://192.168.1.20", "http://user:password@192.168.1.20", "http://192.168.1.20/path?x=1"):
+        ok, _ = check_target(url)
+        assert not ok, url
