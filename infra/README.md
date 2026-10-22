@@ -1,21 +1,35 @@
 # Infrastructure Poupal — compose, supervision, automatisation
 
 Plateforme de paiement **fictive** (démonstrateur Resilience-Alpha) : tout est simulé, aucun paiement
-réel. Un seul fichier `docker-compose.yml` démarre la plateforme, sa supervision, le générateur de
-trafic et le détecteur d'anomalies ; `ansible/` contient les playbooks de remédiation.
+réel. Le fichier `docker-compose.yml` démarre la plateforme, sa supervision, le générateur de
+trafic et le détecteur d'anomalies. La console d'attaque est optionnelle et isolée dans le profil
+Compose `attack` ; `ansible/` contient les playbooks de remédiation.
 
 ## Démarrage (PowerShell ou WSL2, depuis la racine du dépôt)
 
 ```powershell
 Copy-Item infra\.env.example infra\.env      # puis remplacer chaque valeur change-me-*
 bash scripts/gen_keys.sh                     # clés JWT dans secrets/ (Git Bash ou WSL2)
-cd infra; docker compose up -d --build       # ~5 min la première fois (npm ci, pip)
+cd infra; docker compose up -d --build       # plateforme sans console d'attaque
 docker compose ps                            # tout doit passer "healthy"
 ```
 
 Sous WSL2 : `cp infra/.env.example infra/.env && scripts/gen_keys.sh && (cd infra && docker compose up -d --build)`.
 Si le port 8080 est déjà pris sur le PC, changer `GATEWAY_PORT` dans `infra/.env`.
 Arrêt : `docker compose down` (`-v` pour repartir d'une base vide : l'init SQL est rejouée).
+
+La console d'attaque n'est pas démarrée par cette commande. Pour l'activer sur le PC attaquant :
+
+```bash
+cd infra
+docker compose --profile attack up -d --build attack-orchestrator attack-console
+```
+
+Pour l'arrêter sans toucher au reste de la plateforme :
+
+```bash
+docker compose --profile attack stop attack-console attack-orchestrator
+```
 
 ## Réseaux et ports
 
@@ -24,6 +38,7 @@ Arrêt : `docker compose down` (`-v` pour repartir d'une base vide : l'init SQL 
 | `edge` | gateway, front, supervision, traffic-gen, nginx-exporter, ansible-runner | exposition : seule la gateway publie un port |
 | `backend` | db, auth, api, gateway, postgres-exporter, remediation-engine, ansible-runner | cœur métier ; **la base n'est que sur backend** |
 | `monitoring` | prometheus, grafana, loki, alloy, exporters, proxys Docker, anomaly-detector, remediation-engine, ansible-runner, auth, api | supervision (auth/api y sont scrapés) |
+| `console` | attack-console, attack-orchestrator | réseau dédié de la console d'attaque optionnelle |
 
 | Port publié | Adresse | Service |
 |---|---|---|
@@ -94,9 +109,10 @@ durée) sur stdout et dans Loki (`{service="remediation"}`) : la chronologie d'u
   permanent qui expose une API minimale d'exécution (`infra/ansible/runner_api.py`, liste blanche de
   playbooks, jeton `RUNNER_TOKEN`). La reprise est **prouvée** par `scripts/smoke_test.py` (nouvelle
   transaction) et `/internal/consistency`. Runbook, catalogue et analyse de sécurité : `docs/remediation.md`.
-- `supervision` (`frontend/supervision`) : dashboard React en lecture seule, servi par la gateway sous
-  `/supervision/` ; la gateway ne proxifie vers le moteur que `GET /supervision/api/{state,incidents,events}`
-  (SSE), tout le reste du moteur est inaccessible de l'extérieur.
+- `supervision` (`frontend/supervision`) : dashboard React servi par la gateway sous
+  `/supervision/`. Il reste en lecture seule pour l'état des incidents, avec une action bornée
+  supplémentaire pour consulter les IP bannies et demander leur déblocage via le playbook
+  `unblock_ip`.
 - Répétition : `python ml/detection/scenarios/inject.py outage --service api --mode pause --duration 90`
   et observer sur http://localhost:8080/supervision/ : anomalie détectée → action → transaction de
   preuve → SERVICE RÉTABLI (≈ 35 s au total, ≈ 17 s de la détection à la preuve le 20/10/2026).
@@ -122,8 +138,9 @@ réservé aux scénarios d'évaluation du détecteur.
 | Plateforme (db 384, auth 192, api 192, front 48, gateway 64) | 880 Mo | ≈ 190 Mo |
 | Détecteur ML (512) + trafic (96) | 608 Mo | ≈ 165 Mo |
 
-Total mesuré : **≈ 730 Mo** pour l'ensemble (16 conteneurs, `docker stats --no-stream` le 20/10/2026) ; supervision seule ≈ 380 Mo, sous le
-budget de 2 Go. Les images portent toutes un tag de version précis.
+Total mesuré : **≈ 730 Mo** pour le socle observabilité et applicatif mesuré le 20/10/2026
+(`docker stats --no-stream`) ; la console d'attaque optionnelle n'est pas incluse dans ce chiffre.
+Les images portent toutes un tag de version précis.
 
 ## Checklist de vérification (validée le 20/10/2026)
 

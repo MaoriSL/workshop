@@ -22,9 +22,9 @@ Le port Ollama doit rester limité au réseau privé de la démonstration.
 ```bash
 cd infra
 docker compose up -d --build assistant
-curl http://localhost:8080/assistant/health
-curl http://localhost:8080/assistant/ready
-curl -X POST http://localhost:8080/assistant/query \
+curl http://localhost:${GATEWAY_PORT:-8080}/assistant/health
+curl http://localhost:${GATEWAY_PORT:-8080}/assistant/ready
+curl -X POST http://localhost:${GATEWAY_PORT:-8080}/assistant/query \
   -H 'Content-Type: application/json' \
   -d '{"question":"Comment fonctionne la remédiation automatique ?"}'
 ```

@@ -1,6 +1,6 @@
 # Poupal — Dashboard de supervision (`frontend/supervision`)
 
-Écran unique, **en lecture seule**, qui raconte l'incident tout seul : état global de la
+Écran unique, principalement **en lecture seule**, qui raconte l'incident tout seul : état global de la
 plateforme, santé des cinq services, chronologie de la remédiation automatique (avec la
 **preuve de reprise** : une nouvelle transaction qui réussit) et courbe du score d'anomalie.
 Conçu pour être filmé / projeté : gros textes, fond sombre, aucun défilement en 1366×768
@@ -54,8 +54,9 @@ ne reste jamais figé.
    latence p95, taux 5xx, req/s. DOWN → rouge ; dégradé (5xx > 5 % ou p95 > 1 s) → orange.
 3. **Chronologie de l'incident** (`IncidentTimeline` + `ProofCard`) : étapes « T+12 s »,
    plan d'action avec le niveau courant, carte verte pour la transaction de preuve.
-   Bascule **Chronologie / Historique** (`HistoryPanel`) : seul contrôle de l'écran,
-   purement visuel.
+   Bascule **Chronologie / Historique / Assistant RAG / IP bannies**. L'onglet IP bannies
+   permet uniquement de consulter les règles actives et de demander le déblocage explicite
+   d'une adresse via le moteur de remédiation.
 4. **Score d'anomalie** (`ScoreChart`) : score, seuil (rouge pointillé), aire rouge au-dessus
    du seuil, repères détection / action / rétabli.
 
@@ -64,8 +65,8 @@ ne reste jamais figé.
 Image multi-étapes (`Dockerfile`) : build Node 24 → nginx 1.27.5 qui sert `dist/`.
 `nginx.conf` : fallback SPA, assets hachés en cache long, `/healthz` → 200, accepte les
 URL avec ou sans préfixe `/supervision/`. La gateway publie le conteneur sous
-`/supervision/` et proxifie `/supervision/api/{state,incidents,events}` (GET) vers le
-moteur de remédiation.
+`/supervision/` et proxifie les lectures d'état, le flux SSE, ainsi que les routes bornées
+`/supervision/api/blocked-ips` et `/supervision/api/blocked-ips/{ip}/unblock`.
 
 ```bash
 docker build -t poupal-supervision .                      # production (API réelle)

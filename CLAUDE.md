@@ -116,7 +116,7 @@ rétablir \*\*sans intervention humaine\*\*. La plateforme de paiement « Poupal
 
 \- Pré-requis back (une seule fois) : `cp infra/.env.example infra/.env` (adapter les mots de passe fictifs) puis `scripts/gen\_keys.sh` (paire de clés RSA pour les JWT dans `secrets/`, dossier ignoré par Git)
 
-\- Toute la plateforme : `cd infra \&\& docker compose up -d --build` → http://localhost:8080 (seul port publié : front, `/auth`, `/api` ; port modifiable via `GATEWAY\_PORT` dans infra/.env si 8080 est déjà occupé) ; arrêt : `docker compose down` (ajouter `-v` pour repartir d'une base vide et rejouer l'init SQL)
+\- Plateforme sans console d'attaque : `cd infra \&\& docker compose up -d --build` → http://localhost:8080 (port modifiable via `GATEWAY\_PORT` dans infra/.env si 8080 est déjà occupé) ; console optionnelle : `docker compose --profile attack up -d --build attack-orchestrator attack-console` ; arrêt : `docker compose down` (ajouter `-v` pour repartir d'une base vide et rejouer l'init SQL)
 
 \- Données de démo : automatiques au démarrage si `SEED\_DEMO\_DATA=true` dans infra/.env (6 comptes `@poupal.demo`, mot de passe commun `DEMO\_PASSWORD`) ; relance manuelle : `scripts/seed.sh`
 
@@ -142,7 +142,7 @@ rétablir \*\*sans intervention humaine\*\*. La plateforme de paiement « Poupal
 
 \- Remédiation zero-touch : moteur `remediation-engine` (reçoit les incidents signés du détecteur, exécute les playbooks via `ansible-runner`, prouve la reprise par une nouvelle transaction) ; état : `curl http://localhost:8080/supervision/api/state` ; logs : `docker compose logs -f remediation-engine` ; runbook : `docs/remediation.md` ; tests : `python -m pytest services/remediation/app/tests`
 
-\- Dashboard de supervision (lecture seule, à filmer) : http://localhost:8080/supervision/ ; répétition générale : `python ml/detection/scenarios/inject.py outage --service api --mode pause --duration 90` puis observer détection → action → transaction de preuve → RÉTABLI
+\- Dashboard de supervision (lecture de l'état, avec déblocage explicite des IP bannies) : http://localhost:8080/supervision/ ; répétition générale : `python ml/detection/scenarios/inject.py outage --service api --mode pause --duration 90` puis observer détection → action → transaction de preuve → RÉTABLI
 
 \- Secrets (SOPS + age) : `scripts/secrets.sh decrypt` déchiffre `security/secrets/poupal.sops.env` vers `infra/.env` avant tout démarrage ; `encrypt` / `edit` pour modifier ; clé privée dans `secrets/age/keys.txt` (hors Git). Contrôle « aucun secret en clair » : `scripts/scan\_secrets.sh` (gitleaks)
 
@@ -181,4 +181,3 @@ rétablir \*\*sans intervention humaine\*\*. La plateforme de paiement « Poupal
 \- `...-Code.zip` — archive du dépôt Git, README inclus, aucun secret en clair.
 
 \- Gel du code jeudi 17 h, rendus avant 23 h 59.
-
