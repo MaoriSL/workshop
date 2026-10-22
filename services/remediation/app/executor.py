@@ -117,6 +117,17 @@ def run_playbook(playbook: str, variables: dict[str, str], timeout_s: float = AC
     return ActionResult(playbook, variables, ok, duration, details)
 
 
+def blocked_ips(timeout: float = 5.0) -> list[str]:
+    """Lit la liste effective des IP bloquées par la gateway."""
+    try:
+        response = httpx.get(f"{RUNNER_URL}/blocklist", headers={"X-Runner-Token": RUNNER_TOKEN}, timeout=timeout)
+        response.raise_for_status()
+        items = response.json().get("items", [])
+        return [str(item) for item in items if isinstance(item, str)]
+    except (httpx.HTTPError, ValueError) as exc:
+        raise RuntimeError(f"liste de blocage indisponible : {str(exc)[:160]}") from exc
+
+
 def execute(action: str, params: dict) -> ActionResult:
     """Exécute une étape du plan ('a+b' = plusieurs playbooks ; '@aggressive' = IP lue dans Loki)."""
     resolved = dict(params)

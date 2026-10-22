@@ -98,10 +98,9 @@ export default function IncidentTimeline({ incident, lastProof }: Props) {
         </ol>
       </div>
 
-      {/* Liste des étapes. flex-col + justify-end + overflow-hidden : s'il y a
-          plus d'étapes que de place, ce sont les plus RÉCENTES qui restent
-          visibles (les plus anciennes sortent par le haut), sans défilement. */}
-      <ol className="fade-top flex min-h-0 flex-1 flex-col justify-end overflow-hidden pt-[0.6vh]">
+      {/* Liste des étapes : les événements récents restent en bas et les étapes
+          précédentes restent accessibles par défilement vertical. */}
+      <ol className="fade-top flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pt-[0.6vh]">
         {incident.timeline.map((entry, i) =>
           entry.step === 'proof_transaction' && incident.proof ? (
             <li key={`${entry.step}-${i}`} className="py-[0.6vh]">

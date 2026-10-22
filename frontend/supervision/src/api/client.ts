@@ -8,7 +8,7 @@
 //
 // Le dashboard est en lecture seule : aucune requête autre que GET.
 // ---------------------------------------------------------------------------
-import type { ConnectionStatus, Incident, State } from './types'
+import type { BlockedIp, ConnectionStatus, Incident, State } from './types'
 
 /** Base URL de l'API (même origine, proxifiée par la gateway). */
 export const API_BASE: string = (import.meta.env.VITE_API_BASE as string | undefined) || '/supervision/api'
@@ -83,6 +83,28 @@ export function fetchState(): Promise<State> {
 export async function fetchIncidents(): Promise<Incident[]> {
   const data = await getJson<{ items: Incident[] }>('/incidents')
   return data.items ?? []
+}
+
+export async function fetchBlockedIps(): Promise<BlockedIp[]> {
+  const data = await getJson<{ items: string[] }>('/blocked-ips')
+  return (data.items ?? []).map((ip) => ({ ip }))
+}
+
+export async function unblockIp(ip: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/blocked-ips/${encodeURIComponent(ip)}/unblock`, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) {
+    let detail = `HTTP ${res.status} sur /blocked-ips`
+    try {
+      const payload = (await res.json()) as { message?: string }
+      if (payload.message) detail = payload.message
+    } catch {
+      // Keep the HTTP error when the gateway does not return JSON.
+    }
+    throw new Error(detail)
+  }
 }
 
 export interface SubscribeCallbacks {

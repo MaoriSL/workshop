@@ -136,5 +136,9 @@ export interface State {
   markers: Marker[]
 }
 
+export interface BlockedIp {
+  ip: string
+}
+
 /** Qualité de la liaison avec le moteur, affichée dans le bandeau. */
 export type ConnectionStatus = 'live' | 'polling' | 'offline'

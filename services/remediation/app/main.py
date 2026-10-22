@@ -327,6 +327,27 @@ async def api_incidents() -> dict:
     return {"items": [i.to_dict() for i in engine.registry.history()]}
 
 
+@app.get("/api/blocked-ips")
+async def api_blocked_ips() -> JSONResponse:
+    try:
+        return JSONResponse(status_code=200, content={"items": await asyncio.to_thread(executor.blocked_ips)})
+    except RuntimeError as exc:
+        return JSONResponse(status_code=503, content={"message": str(exc), "code": "blocklist_unavailable"})
+
+
+@app.post("/api/blocked-ips/{ip:path}/unblock")
+async def api_unblock_ip(ip: str) -> JSONResponse:
+    try:
+        normalized = executor.validate_ip(ip)
+        result = await asyncio.to_thread(executor.run_playbook, "unblock_ip", {"ip": normalized})
+    except executor.ActionRefused as exc:
+        return JSONResponse(status_code=400, content={"message": str(exc), "code": "invalid_ip"})
+    if not result.ok:
+        return JSONResponse(status_code=502, content={"message": result.details, "code": "unblock_failed"})
+    engine.changed()
+    return JSONResponse(status_code=200, content={"ip": normalized, "message": "Adresse IP débloquée."})
+
+
 @app.get("/api/events")
 async def api_events() -> StreamingResponse:
     """Server-Sent Events : l'état complet à chaque changement et toutes les 2 s (battement de cœur)."""

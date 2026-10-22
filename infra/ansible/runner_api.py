@@ -22,10 +22,14 @@ import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+import docker
+
 PLAYBOOK_DIR = os.environ.get("PLAYBOOK_DIR", "/workspace/infra/ansible/playbooks")
 LISTEN_PORT = int(os.environ.get("RUNNER_PORT", "8011"))
 TOKEN = os.environ.get("RUNNER_TOKEN", "")
 MAX_TIMEOUT_S = 120
+GATEWAY_CONTAINER = "poupal-gateway"
+BLOCKLIST_FILE = "/etc/nginx/blocklist/blocked_ips.conf"
 
 # Liste blanche FERMÉE des playbooks exécutables à distance (pas deploy : jamais depuis le moteur)
 ALLOWED_PLAYBOOKS = {
@@ -79,6 +83,25 @@ def run_playbook(playbook: str, variables: dict[str, str], timeout_s: float) -> 
     return {"ok": rc == 0, "rc": rc, "duration_s": duration, "output_tail": tail}
 
 
+def list_blocked_ips() -> list[str]:
+    client = docker.from_env()
+    container = client.containers.get(GATEWAY_CONTAINER)
+    result = container.exec_run(["cat", BLOCKLIST_FILE])
+    if result.exit_code != 0:
+        raise RuntimeError(result.output.decode(errors="replace").strip() or "lecture de la liste impossible")
+    ips = []
+    for line in result.output.decode(errors="replace").splitlines():
+        line = line.strip()
+        if line.startswith("deny ") and line.endswith(";"):
+            candidate = line[5:-1].strip()
+            try:
+                ipaddress.ip_network(candidate, strict=False)
+            except ValueError:
+                continue
+            ips.append(candidate)
+    return sorted(set(ips))
+
+
 class Handler(BaseHTTPRequestHandler):
     def _send(self, status: int, body: dict) -> None:
         data = json.dumps(body, ensure_ascii=False).encode()
@@ -91,6 +114,14 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
             self._send(200, {"status": "ok"})
+        elif self.path == "/blocklist":
+            if TOKEN and self.headers.get("X-Runner-Token", "") != TOKEN:
+                self._send(401, {"message": "jeton invalide"})
+            else:
+                try:
+                    self._send(200, {"items": list_blocked_ips()})
+                except Exception as exc:
+                    self._send(502, {"message": str(exc)[:200]})
         else:
             self._send(404, {"message": "not found"})
 

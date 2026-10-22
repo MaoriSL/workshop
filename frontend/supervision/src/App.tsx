@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { API_BASE } from '@/api/client'
 import AssistantPanel from '@/components/AssistantPanel'
+import BlockedIpsPanel from '@/components/BlockedIpsPanel'
 import GlobalBanner from '@/components/GlobalBanner'
 import HistoryPanel from '@/components/HistoryPanel'
 import IncidentTimeline from '@/components/IncidentTimeline'
@@ -16,7 +17,7 @@ import ScoreChart from '@/components/ScoreChart'
 import ServiceTiles from '@/components/ServiceTiles'
 import { useLiveState } from '@/hooks/useLiveState'
 
-type View = 'timeline' | 'history' | 'assistant'
+type View = 'timeline' | 'history' | 'assistant' | 'blocked'
 
 export default function App() {
   const { state, status, incidents, isMock } = useLiveState()
@@ -41,7 +42,7 @@ export default function App() {
         <section className="card flex min-h-0 flex-col px-[1.2vw] py-[1vh]">
           <div className="flex shrink-0 items-center justify-between gap-4 pb-[0.6vh]">
             <h2 className="t-title font-extrabold">
-              {view === 'timeline' ? "Chronologie de l'incident" : 'Historique des incidents'}
+              {view === 'timeline' ? "Chronologie de l'incident" : view === 'history' ? 'Historique des incidents' : view === 'blocked' ? 'Adresses IP bannies' : 'Assistant RAG'}
             </h2>
             {/* Bascule d'affichage : lecture seule, ne déclenche rien côté moteur */}
             <div className="t-small flex rounded-lg border border-line bg-panel-2 p-0.5 font-semibold" role="tablist" aria-label="Affichage">
@@ -54,6 +55,9 @@ export default function App() {
               <TabButton active={view === 'assistant'} onClick={() => setView('assistant')}>
                 Assistant RAG
               </TabButton>
+              <TabButton active={view === 'blocked'} onClick={() => setView('blocked')}>
+                IP bannies
+              </TabButton>
             </div>
           </div>
           <div className="min-h-0 flex-1">
@@ -65,6 +69,9 @@ export default function App() {
             </div>
             <div className={view === 'assistant' ? 'h-full' : 'hidden'}>
               <AssistantPanel incident={incident} />
+            </div>
+            <div className={view === 'blocked' ? 'h-full' : 'hidden'}>
+              <BlockedIpsPanel />
             </div>
           </div>
         </section>
