@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ------------------------------------------------------------------
 # Rôle SQL dédié à postgres_exporter : LECTURE SEULE des vues de statistiques
 # (pg_stat_*), aucun accès aux schémas auth et payments.
 # Exécuté une fois, au premier démarrage du conteneur db (après 01-init.sh).
 # Base déjà initialisée ? Rejouer ce fichier à la main :
-#   docker compose exec -e EXPORTER_DB_PASSWORD=... db bash /docker-entrypoint-initdb.d/02-exporter-role.sh
+#   docker compose exec -e EXPORTER_DB_PASSWORD=... db sh /docker-entrypoint-initdb.d/02-exporter-role.sh
 # ------------------------------------------------------------------
-set -euo pipefail
+set -eu
 : "${EXPORTER_DB_PASSWORD:?EXPORTER_DB_PASSWORD manquant}"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-SQL

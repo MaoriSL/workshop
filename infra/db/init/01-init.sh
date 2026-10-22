@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ------------------------------------------------------------------
 # Initialisation PostgreSQL (exécuté UNE fois, au premier démarrage du
 # conteneur db, par l'image officielle postgres via /docker-entrypoint-initdb.d).
@@ -10,7 +10,7 @@
 #     (GRANT SELECT posé par la migration du service auth, propriétaire de la vue).
 # La base "poupal_test" reçoit la même structure pour les tests pytest.
 # ------------------------------------------------------------------
-set -euo pipefail
+set -eu
 
 : "${AUTH_DB_PASSWORD:?AUTH_DB_PASSWORD manquant}"
 : "${API_DB_PASSWORD:?API_DB_PASSWORD manquant}"
