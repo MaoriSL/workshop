@@ -32,6 +32,18 @@ docker compose logs -f traffic-gen                # suivre les logs JSON
 docker compose up -d traffic-gen
 ```
 
+Pour arrêter immédiatement toutes les requêtes automatiques :
+
+```bash
+docker compose stop traffic-gen
+```
+
+Pour le relancer avec la configuration existante :
+
+```bash
+docker compose start traffic-gen
+```
+
 Le conteneur est `healthy` tant que la boucle principale touche `/tmp/traffic-gen.heartbeat`
 (toutes les 5 s, y compris en veille) ; le healthcheck tolère 120 s de silence.
 

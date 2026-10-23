@@ -51,6 +51,17 @@ la gateway de l'intégrateur qui proxifie `/api/` (voir le bloc commenté dans
 `nginx.conf` pour un déploiement autonome ; `proxy_buffering off` requis pour le
 SSE).
 
+Avec Docker Compose depuis `infra/`, la console est optionnelle et appartient au
+profil `attack` :
+
+```bash
+docker compose --profile attack up -d attack-orchestrator attack-console
+docker compose --profile attack stop attack-console attack-orchestrator
+```
+
+Sans `--profile attack`, ces deux conteneurs ne sont pas démarrés par le
+déploiement normal de la plateforme.
+
 ## Contrat d'API attendu (orchestrateur)
 Voir `src/api/types.ts`. Résumé :
 - `GET {base}/state` → `State` ; `GET {base}/events` → SSE `event: state`.

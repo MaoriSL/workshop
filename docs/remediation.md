@@ -123,10 +123,11 @@ pourrait perturber la plateforme (redémarrages), mais pas en sortir ni modifier
 ## 8. Commandes
 
 ```bash
-cd infra && docker compose up -d --build ansible-runner remediation-engine supervision   # démarrage
+cd infra && docker compose up -d --build ansible-runner remediation-engine supervision   # démarrage ciblé
 docker compose logs -f remediation-engine                                                # chronologie JSON
-curl -s http://localhost:8080/supervision/api/state | python -m json.tool                 # état consolidé
+curl -s http://localhost:${GATEWAY_PORT:-8080}/supervision/api/state | python -m json.tool # état consolidé
 python ml/detection/scenarios/inject.py outage --service api --mode pause --duration 90   # répétition
 ```
 
-Dashboard : http://localhost:8080/supervision/ (lecture seule). Tests : `python -m pytest services/remediation/app/tests`.
+Dashboard : http://localhost:${GATEWAY_PORT:-8080}/supervision/ (lecture de l'état, avec
+déblocage explicite des IP bannies). Tests : `python -m pytest services/remediation/app/tests`.

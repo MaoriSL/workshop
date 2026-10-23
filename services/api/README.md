@@ -14,6 +14,9 @@ Service FastAPI qui gère les **comptes** et les **transactions** de la platefor
 - **Idempotence** : l'en-tête `Idempotency-Key` est obligatoire sur `POST /api/transactions`.
   Une même clé rejouée avec le même corps renvoie la même transaction (200) ; avec un corps
   différent, elle est refusée (422).
+- En cas de coupure pendant un virement, le frontend réessaie automatiquement avec la même
+  clé pendant une durée bornée. Cela permet de récupérer une transaction déjà validée ou de
+  la terminer après le rétablissement de l'API, sans double débit.
 - Les jetons JWT (RS256) sont vérifiés avec la **clé publique uniquement** : l'API ne peut
   pas en émettre et n'accède jamais à la table des utilisateurs du service auth.
 - Les destinataires sont résolus via la vue en lecture seule `auth.user_directory`

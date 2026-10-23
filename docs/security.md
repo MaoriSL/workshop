@@ -37,7 +37,7 @@ Le PC hôte lance Poupal, le WAF et la supervision. Le PC attaquant lance unique
 
 ```bash
 cd infra
-docker compose up -d attack-orchestrator attack-console
+docker compose --profile attack up -d attack-orchestrator attack-console
 ```
 
 Sur le PC hôte, relever l'IPv4 du réseau privé et le port `GATEWAY_PORT` (par défaut `18080`).
