@@ -30,7 +30,7 @@ class InjectionScenario(Scenario):
             incident_type="injection",
             defense="WAF (CRS OWASP) qui bloque (403) et journalise ; côté API, requêtes paramétrées déjà en place.",
             params=[
-                ParamField("rate_per_s", "Charges / seconde", "int", default=5, min=1, max=20, step=1),
+                ParamField("rate_per_s", "Charges / seconde", "int", default=20, min=1, max=100, step=5),
                 ParamField("duration_s", "Durée", "int", default=40, min=5, max=MAX_DURATION_S, step=5, unit="s"),
             ],
         )

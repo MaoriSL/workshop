@@ -28,7 +28,7 @@ class BruteForceScenario(Scenario):
             incident_type="bruteforce",
             defense="Limitation de débit sur /auth/login (401 génériques puis 429) et blocage de l'IP par la remédiation.",
             params=[
-                ParamField("rate_per_s", "Tentatives / seconde", "int", default=5, min=1, max=20, step=1),
+                ParamField("rate_per_s", "Tentatives / seconde", "int", default=20, min=1, max=100, step=5),
                 ParamField("duration_s", "Durée", "int", default=60, min=5, max=MAX_DURATION_S, step=5, unit="s"),
             ],
         )

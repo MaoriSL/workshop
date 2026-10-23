@@ -43,6 +43,12 @@ RECOVER_R = int(os.environ.get("DETECTOR_RECOVER_R", "6"))
 REMEDIATION_URL = os.environ.get("REMEDIATION_URL", "").strip() or None
 HMAC_SECRET = os.environ.get("REMEDIATION_HMAC_SECRET", "")
 SERVICE_NAME = "poupal-detector"
+SECURITY_SIGNAL_FEATURES = (
+    "siem_waf_block_sources",
+    "siem_enumeration_sources",
+    "siem_rate_limited_sources",
+    "siem_bruteforce_sources",
+)
 
 STATE_CODES = {NORMAL: 0, "SUSPECT": 1, ANOMALY: 2, "RETABLISSEMENT": 3}
 
@@ -94,6 +100,7 @@ class Detector:
         self.last_cycle_at: datetime | None = None
         self.current_incident: dict | None = None
         self.incidents: list[dict] = []
+        self.last_security_signal = False
 
     def load_model(self) -> bool:
         try:
@@ -133,13 +140,17 @@ class Detector:
         self.last_score = score
         self.last_service_scores = {s: float(v[0]) for s, v in self.model.service_scores(frame).items()}
         self.last_explanation = self.model.explain(row)
+        self.last_security_signal = any(float(row.get(name, 0.0)) > 0.0 for name in SECURITY_SIGNAL_FEATURES)
         self.last_cycle_at = datetime.now(timezone.utc)
         ANOMALY_SCORE.set(score)
         for service, value in self.last_service_scores.items():
             SERVICE_SCORE.labels(service).set(value)
         LAST_CYCLE.set(self.last_cycle_at.timestamp())
 
-        transition = self.machine.update(score > self.model.threshold, now=self.last_cycle_at)
+        # Une alerte SIEM active est déjà une corrélation de sécurité confirmée.
+        # Elle complète le score ML sans abaisser le seuil statistique général.
+        above_threshold = score > self.model.threshold
+        transition = self.machine.update(above_threshold or self.last_security_signal, now=self.last_cycle_at)
         ANOMALY_STATE.set(STATE_CODES[self.machine.state])
         if transition is None:
             return
@@ -197,6 +208,7 @@ class Detector:
             "current_incident": self.current_incident,
             "model_version": None if self.model is None else self.model.version,
             "prometheus_ok": self.prometheus_ok,
+            "security_signal": self.last_security_signal,
             "last_cycle_at": None if self.last_cycle_at is None else self.last_cycle_at.isoformat(timespec="seconds"),
             "config": {"interval_s": INTERVAL_S, "confirm_n": CONFIRM_N, "confirm_m": CONFIRM_M, "recover_r": RECOVER_R,
                        "remediation_url_configured": REMEDIATION_URL is not None},

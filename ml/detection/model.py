@@ -61,7 +61,7 @@ def fit_robust_scaler(x: np.ndarray) -> RobustScaler:
 # Variables « signal de panne » : constantes en fonctionnement normal, tout écart est significatif.
 # (Les variantes glissantes __diff/__mean/__std et les latences sont exclues : elles fluctuent naturellement.)
 BREACH_PREFIXES = ("service_up__", "http_error_ratio_5xx_rate1m__", "db_errors_per_minute__", "container_restarts_total__",
-                   "login_failures_per_minute__", "ratio_failed_transactions", "ratio_5xx_total")
+                   "login_failures_per_minute__", "siem_", "ratio_failed_transactions", "ratio_5xx_total")
 
 
 def constant_features(x: np.ndarray, names: list[str]) -> np.ndarray:
@@ -184,6 +184,15 @@ def vote_weight(feature: str) -> float:
 
 def rule_based_type(row: pd.Series, z: pd.Series) -> str:
     """Type d'incident déduit des variables les plus anormales (utilisé si pas assez d'exemples étiquetés)."""
+    if row.get("siem_waf_block_sources", 0.0) > 0:
+        return "injection"
+    if row.get("siem_enumeration_sources", 0.0) > 0:
+        return "exfiltration"
+    if row.get("siem_bruteforce_sources", 0.0) > 0:
+        return "bruteforce"
+    if row.get("siem_rate_limited_sources", 0.0) > 0:
+        return "surcharge"
+
     def total(prefix: str, signed: bool = True) -> float:
         cols = [c for c in z.index if c.startswith(prefix) and "__mean" not in c and "__std" not in c and "__diff" not in c]
         values = z[cols] if cols else pd.Series(dtype=float)

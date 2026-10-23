@@ -28,7 +28,7 @@ class ExfiltrationScenario(Scenario):
             incident_type="exfiltration",
             defense="Pagination plafonnée côté API (limit borné) ; pic de lecture tracé dans le SIEM.",
             params=[
-                ParamField("rate_per_s", "Requêtes / seconde", "int", default=10, min=1, max=40, step=1),
+                ParamField("rate_per_s", "Requêtes / seconde", "int", default=40, min=1, max=100, step=5),
                 ParamField("duration_s", "Durée", "int", default=40, min=5, max=MAX_DURATION_S, step=5, unit="s"),
             ],
         )

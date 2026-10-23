@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ml.detection.features import DEFAULT_WINDOW, build_features, latest_features, select_raw_columns, service_of
+from ml.detection.model import rule_based_type
 
 
 def make_raw(n: int = 120, seed: int = 7) -> pd.DataFrame:
@@ -42,6 +43,19 @@ def test_no_nan_and_expected_columns():
     assert "http_requests_per_second_rate1m__poupal-api__diff" in full.columns
     assert "ratio_failed_transactions" in full.columns
     assert "container_memory_bytes__grafana" not in full.columns
+
+
+def test_siem_security_signals_are_model_features():
+    raw = make_raw()
+    raw["siem_waf_block_sources"] = 0.0
+    raw["siem_enumeration_sources"] = 0.0
+    raw["siem_rate_limited_sources"] = 0.0
+    raw["siem_bruteforce_sources"] = 1.0
+    full = build_features(raw)
+    assert "siem_waf_block_sources" in full.columns
+    assert "siem_enumeration_sources__diff" in full.columns
+    assert full["siem_bruteforce_sources"].iloc[-1] == 1.0
+    assert rule_based_type(full.iloc[-1], full.iloc[-1]) == "bruteforce"
 
 
 def test_missing_column_is_filled_with_zero():

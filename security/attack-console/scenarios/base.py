@@ -17,8 +17,8 @@ import httpx
 
 # Plafonds durs : même si l'interface envoyait une valeur plus grande, on la ramène ici.
 MAX_DURATION_S = 180
-MAX_CONCURRENCY = 50
-MAX_RATE_PER_S = 200
+MAX_CONCURRENCY = 100
+MAX_RATE_PER_S = 100
 
 
 @dataclass

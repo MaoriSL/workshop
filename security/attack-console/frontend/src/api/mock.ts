@@ -22,7 +22,7 @@ const SCENARIOS: Scenario[] = [
     incident_type: 'surcharge',
     defense: 'Limitation de débit (429) et montée en charge automatique.',
     params_schema: [
-      { key: 'intensite', label: 'Intensité', type: 'int', min: 20, max: 500, step: 20, default: 160, unit: 'req/s' },
+      { key: 'intensite', label: 'Intensité', type: 'int', min: 20, max: 1000, step: 20, default: 300, unit: 'req/s' },
       { key: 'duree', label: 'Durée', type: 'int', min: 10, max: 180, step: 10, default: 45, unit: 's' },
     ],
   },
@@ -34,7 +34,7 @@ const SCENARIOS: Scenario[] = [
     defense: 'Verrouillage de compte et blocage d’IP par le WAF.',
     params_schema: [
       { key: 'comptes', label: 'Comptes ciblés', type: 'int', min: 1, max: 20, step: 1, default: 5 },
-      { key: 'intensite', label: 'Tentatives', type: 'int', min: 2, max: 60, step: 2, default: 20, unit: 'req/s' },
+      { key: 'intensite', label: 'Tentatives', type: 'int', min: 2, max: 100, step: 2, default: 30, unit: 'req/s' },
       { key: 'duree', label: 'Durée', type: 'int', min: 10, max: 120, step: 10, default: 40, unit: 's' },
     ],
   },
@@ -56,7 +56,7 @@ const SCENARIOS: Scenario[] = [
           { value: 'time', label: 'Temporelle (sleep)' },
         ],
       },
-      { key: 'intensite', label: 'Intensité', type: 'int', min: 5, max: 200, step: 5, default: 60, unit: 'req/s' },
+      { key: 'intensite', label: 'Intensité', type: 'int', min: 5, max: 100, step: 5, default: 30, unit: 'req/s' },
       { key: 'duree', label: 'Durée', type: 'int', min: 10, max: 180, step: 10, default: 60, unit: 's' },
     ],
   },
@@ -67,7 +67,7 @@ const SCENARIOS: Scenario[] = [
     incident_type: 'exfiltration',
     defense: 'Détection de volumétrie anormale et coupure du flux.',
     params_schema: [
-      { key: 'debit', label: 'Débit', type: 'float', min: 0.5, max: 20, step: 0.5, default: 6, unit: 'Mo/s' },
+      { key: 'debit', label: 'Débit', type: 'float', min: 0.5, max: 40, step: 0.5, default: 10, unit: 'Mo/s' },
       { key: 'duree', label: 'Durée', type: 'int', min: 10, max: 120, step: 10, default: 50, unit: 's' },
     ],
   },

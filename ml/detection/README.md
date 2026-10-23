@@ -46,6 +46,19 @@ python -m pytest -q ml/detection/tests
 Une attaque réelle (PC Attaquant) s'ajoute à `labels.csv` avec
 `python ml/detection/scenarios/inject.py label --type attack --start <ISO> --end <ISO>`, puis `evaluate`.
 
+Les signaux de corrélation SIEM (`waf_block_burst`, `enumeration`, `rate_limited_burst` et
+`bruteforce_login`) sont aussi exportés par Prometheus comme variables du modèle. Ils permettent
+au détecteur ML de confirmer une attaque bloquée au WAF ou une énumération, même si la requête
+n'atteint pas l'API. Après cette modification, le modèle doit être réentraîné avec des données
+normales puis des scénarios étiquetés :
+
+```bash
+python scripts/export_metrics.py --since 2h --step 5s
+python -m ml.detection.train
+python -m ml.detection.evaluate
+cd infra && docker compose restart anomaly-detector
+```
+
 ## Service temps réel
 
 Toutes les 5 s : Prometheus → `features.py` → score → machine à états
