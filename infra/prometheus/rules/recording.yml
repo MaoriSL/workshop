@@ -56,6 +56,21 @@ groups:
       - record: poupal:db_errors_per_minute
         expr: sum by (service) (rate(poupal_db_errors_total[1m])) * 60
 
+      # --- Signaux SIEM : attaques bloquées ou énumération détectée ---
+      # Ces métriques relient la corrélation de sécurité au modèle ML. Elles restent à 0
+      # lorsqu'aucune source ne dépasse le seuil SIEM.
+      - record: poupal:siem_waf_block_sources
+        expr: max(poupal_siem_rule_sources{rule="waf_block_burst"}) or vector(0)
+
+      - record: poupal:siem_enumeration_sources
+        expr: max(poupal_siem_rule_sources{rule="enumeration"}) or vector(0)
+
+      - record: poupal:siem_rate_limited_sources
+        expr: max(poupal_siem_rule_sources{rule="rate_limited_burst"}) or vector(0)
+
+      - record: poupal:siem_bruteforce_sources
+        expr: max(poupal_siem_rule_sources{rule="bruteforce_login"}) or vector(0)
+
       # --- Base de données (postgres_exporter) ---
       - record: poupal:db_connections_active
         expr: sum(pg_stat_activity_count{state="active"})
